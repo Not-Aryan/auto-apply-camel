@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient, EmailAddress } from '@clerk/nextjs/server';
 
 export async function POST(request: Request) {
   try {
@@ -16,19 +16,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const { basicInfo, education, experience, projects, skills } = data;
+    // Extract data, prioritizing 'basicinfo' if available, otherwise use 'basicInfo'
+    const basicInfoData = data.basicinfo || data.basicInfo;
+    const { education, experience, projects, skills } = data;
+
+    // Add a check to ensure basicInfoData is not undefined/null if needed for validation
+    if (!basicInfoData) {
+      console.error('Basic info data (basicInfo or basicinfo) is missing');
+      return NextResponse.json(
+        { success: false, error: 'Missing basic information' },
+        { status: 400 }
+      );
+    }
+    
     console.log('Extracted data:')
-    console.log('basicInfo:', basicInfo)
+    console.log('basicInfoData:', basicInfoData) // Log the actual data used
     console.log('education:', education)
     console.log('experience:', experience)
     console.log('projects:', projects)
     console.log('skills:', skills)
 
-    // Validate required data
-    if (!basicInfo || !Array.isArray(education) || !Array.isArray(experience) || 
+    // Validate required data using basicInfoData
+    if (!basicInfoData || !Array.isArray(education) || !Array.isArray(experience) ||
         !Array.isArray(projects) || !Array.isArray(skills)) {
       console.error('Missing or invalid fields:', {
-        hasBasicInfo: !!basicInfo,
+        hasBasicInfo: !!basicInfoData, // Use the derived variable
         isEducationArray: Array.isArray(education),
         isExperienceArray: Array.isArray(experience),
         isProjectsArray: Array.isArray(projects),
@@ -49,40 +61,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({
+    // Check if user exists in our DB
+    let user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true }
     });
 
+    // If user doesn't exist in our DB, create them
     if (!user) {
-      const { user: clerkUser } = await auth();
-      // Create user if they don't exist
-      await prisma.user.create({
-        data: {
-          id: userId,
-          email: clerkUser?.emailAddresses[0]?.emailAddress || '',
-          firstName: clerkUser?.firstName || '',
-          lastName: clerkUser?.lastName || '',
+      try {
+        // Await clerkClient() to get the client instance
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(userId);
+        if (!clerkUser) {
+          throw new Error('Clerk user not found despite valid userId');
         }
-      });
+        user = await prisma.user.create({
+          data: {
+            id: userId,
+            email: clerkUser.emailAddresses.find((e: EmailAddress) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || '',
+            firstName: clerkUser.firstName || '',
+            lastName: clerkUser.lastName || '',
+          }
+        });
+        console.log(`Created new user entry in DB for userId: ${userId}`);
+      } catch (error) {
+        console.error(`Failed to fetch Clerk user or create user in DB for ${userId}:`, error);
+        return NextResponse.json({ success: false, error: 'Failed to initialize user data' }, { status: 500 });
+      }
     }
 
-    // Create or update profile
+    // Create or update profile in Prisma
     const profile = await prisma.profile.upsert({
       where: { userId },
       create: {
         userId,
-        phoneNumber: basicInfo.phoneNumber || '',
-        address: basicInfo.address || '',
-        city: basicInfo.city || '',
-        state: basicInfo.state || '',
-        country: basicInfo.country || '',
-        zipCode: basicInfo.zipCode || '',
-        linkedinUrl: basicInfo.linkedinUrl || '',
-        githubUrl: basicInfo.githubUrl || '',
-        portfolioUrl: basicInfo.portfolioUrl || '',
-        resumeUrl: basicInfo.resumeUrl || '',  // Ensure resume URL is saved
+        phoneNumber: basicInfoData.phoneNumber || '',
+        address: basicInfoData.address || '',
+        city: basicInfoData.city || '',
+        state: basicInfoData.state || '',
+        country: basicInfoData.country || '',
+        zipCode: basicInfoData.zipCode || '',
+        linkedinUrl: basicInfoData.linkedinUrl || '',
+        githubUrl: basicInfoData.githubUrl || '',
+        portfolioUrl: basicInfoData.portfolioUrl || '',
+        resumeUrl: basicInfoData.resumeUrl || '',  // Ensure resume URL is saved
         education: {
           create: education.map((edu: any) => ({
             university: edu.university || '',
@@ -130,16 +152,16 @@ export async function POST(request: Request) {
         },
       },
       update: {
-        phoneNumber: basicInfo.phoneNumber || '',
-        address: basicInfo.address || '',
-        city: basicInfo.city || '',
-        state: basicInfo.state || '',
-        country: basicInfo.country || '',
-        zipCode: basicInfo.zipCode || '',
-        linkedinUrl: basicInfo.linkedinUrl || '',
-        githubUrl: basicInfo.githubUrl || '',
-        portfolioUrl: basicInfo.portfolioUrl || '',
-        resumeUrl: basicInfo.resumeUrl || undefined,  // Only update if provided
+        phoneNumber: basicInfoData.phoneNumber || '',
+        address: basicInfoData.address || '',
+        city: basicInfoData.city || '',
+        state: basicInfoData.state || '',
+        country: basicInfoData.country || '',
+        zipCode: basicInfoData.zipCode || '',
+        linkedinUrl: basicInfoData.linkedinUrl || '',
+        githubUrl: basicInfoData.githubUrl || '',
+        portfolioUrl: basicInfoData.portfolioUrl || '',
+        resumeUrl: basicInfoData.resumeUrl || undefined,
         education: {
           deleteMany: {},
           create: education.map((edu: any) => ({
@@ -198,16 +220,28 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Profile created/updated successfully:', profile)
+    console.log('Profile created/updated successfully in DB')
     if (!profile) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to create or update profile' 
-      }, { 
-        status: 500 
-      });
+      console.error('Profile upsert failed unexpectedly');
+      return NextResponse.json({ success: false, error: 'Failed to create or update profile' }, { status: 500 });
     }
-    
+
+    // Update Clerk metadata
+    try {
+      // Await clerkClient() to get the instance
+      const clerk = await clerkClient();
+      await clerk.users.updateUserMetadata(userId, {
+        publicMetadata: {
+          onboardingComplete: true,
+        },
+      });
+      console.log(`Set onboardingComplete metadata for user ${userId}`);
+    } catch (clerkError) {
+      console.error(`Failed to update Clerk metadata for user ${userId}:`, clerkError);
+      // Log the error but proceed
+    }
+
+    // Return success response
     return NextResponse.json({
       success: true,
       data: {
@@ -233,15 +267,11 @@ export async function POST(request: Request) {
         }
       }
     });
+
   } catch (error) {
     // Convert error to a plain object for logging
     const errorMessage = error instanceof Error ? error.message : 'Failed to save onboarding data';
     console.error('Error saving onboarding data:', errorMessage);
-    return NextResponse.json({ 
-      success: false, 
-      error: errorMessage
-    }, { 
-      status: 500 
-    });
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
 }

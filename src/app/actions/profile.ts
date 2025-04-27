@@ -35,6 +35,7 @@ export interface Education {
   isCurrently: boolean;
   gpa?: string;
   description?: string;
+  location?: string;
 }
 
 export interface EducationFormData {
@@ -91,17 +92,11 @@ export type SkillFormData = {
 };
 
 async function getUserId() {
-  const { userId } = auth();
-  
-  if (!userId) {
-    // Try getting the current user as a fallback
-    const user = await currentUser();
-    if (user?.id) {
-      return { userId: user.id };
-    }
-    return { error: "Not authenticated" };
+  const authResult = await auth();
+  if (authResult.userId) {
+    return { userId: authResult.userId };
   }
-  return { userId };
+  return { error: "Not authenticated" };
 }
 
 export async function updateProfile(data: ProfileFormData) {
@@ -163,7 +158,7 @@ export async function getProfile() {
     // Transform education data to include universityData
     const transformedProfile = {
       ...profile,
-      education: profile.education.map(edu => ({
+      education: profile.education.map((edu: any) => ({
         ...edu,
         universityData: {
           logo: edu.universityLogo,
@@ -318,9 +313,9 @@ export async function updateEducation(id: string, data: EducationFormData) {
 
     const updateData = {
       university: data.university,
-      universityLogo: data.universityLogo || null,
-      universityWebsite: data.universityWebsite || null,
-      universityCountry: data.universityCountry || null,
+      universityLogo: data.universityData?.logo || null,
+      universityWebsite: data.universityData?.website || null,
+      universityCountry: data.universityData?.country || null,
       degree: data.degree,
       field: data.field,
       startDate,
@@ -328,7 +323,7 @@ export async function updateEducation(id: string, data: EducationFormData) {
       gpa,
       isCurrently: data.isCurrently,
       description: data.description || null,
-      location: data.location || null,
+      location: data.universityData?.city || null,
     };
 
     const education = await prisma.education.update({
