@@ -178,7 +178,7 @@ export function SkillsForm({ onNext, initialData }: SkillsFormProps) {
         </Button>
 
         <div className="flex justify-end mt-6">
-          <Button type="submit">Complete Onboarding</Button>
+          <Button type="submit" variant="outline">Complete Onboarding</Button>
         </div>
       </form>
     </Form>

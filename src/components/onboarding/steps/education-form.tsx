@@ -281,7 +281,7 @@ export function EducationForm({ onNext, initialData }: EducationFormProps) {
         </Button>
 
         <div className="flex justify-end mt-6">
-          <Button type="submit">Next</Button>
+          <Button type="submit" variant="outline">Next</Button>
         </div>
       </form>
     </Form>

@@ -263,7 +263,7 @@ export function BasicInfoForm({ onNext, initialData }: BasicInfoFormProps) {
         </div>
 
         <div className="flex justify-end mt-6">
-          <Button type="submit">Next</Button>
+          <Button type="submit" variant="outline">Next</Button>
         </div>
       </form>
     </Form>
