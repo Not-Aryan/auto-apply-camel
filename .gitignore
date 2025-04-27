@@ -9,6 +9,8 @@ yarn-error.log
 .env.local
 .env.*.local
 
+.next/
+
 # Operating System
 .DS_Store
 Thumbs.db
