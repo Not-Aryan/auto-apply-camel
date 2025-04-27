@@ -151,7 +151,7 @@ export function OnboardingForm() {
         }
 
         // Handle successful submission (e.g., redirect to dashboard)
-        window.location.href = "/dashboard";
+        window.location.href = "/jobs";
       } catch (error) {
         console.error("Error submitting form:", error);
         // Handle error (show error message to user)
