@@ -37,13 +37,17 @@ import { NavSearch } from "@/components/nav-search";
 import { cn } from "@/lib/utils";
 import { SAMPLE_DATA } from "@/lib/constants";
 
-export function AppSidebar({ className, ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  context?: 'app' | 'company';
+}
+
+export function AppSidebar({ className, context = 'app', ...props }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" className={cn(className)} {...props}>
       {/* <SidebarHeader>
       </SidebarHeader> */}
       <SidebarContent>
-        <NavSearch />
+        <NavSearch context={context} />
         {/* <NavFavorites /> */}
       </SidebarContent>
       <SidebarFooter>

@@ -10,45 +10,60 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar";
-
-const searchItems = [
-  // {
-  //   title: "Search",
-  //   icon: Search,
-  // },
-  {
-    title: "Chat",
-    icon: MessageCircle,
-    href: "/chat",
-  },
-  {
-    title: "Jobs",
-    icon: LayoutDashboard,
-    href: "/jobs",
-  },
-  // {
-  //   title: "Profile",
-  //   icon: User,
-  //   href: "/profile",
-  // },
-  {
-    title: "Settings",
-    icon: Settings,
-  },
-];
+import { cn } from "@/lib/utils";
 
 interface NavSearchProps {
   className?: string;
+  context?: 'app' | 'company';
 }
 
-export function NavSearch({ className }: NavSearchProps) {
+export function NavSearch({ className, context = 'app' }: NavSearchProps) {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  // Define items based on context
+  const getItems = () => {
+    const baseItems = [
+      {
+        title: "Chat",
+        icon: MessageCircle,
+        href: "/chat",
+      },
+      {
+        title: "Settings",
+        icon: Settings,
+        // Add href if settings page exists
+      },
+    ];
+
+    if (context === 'company') {
+      return [
+        {
+          title: "Listings", // Renamed from Jobs
+          icon: LayoutDashboard,
+          href: "/listings", // Assuming this is the target path
+        },
+        ...baseItems.filter(item => item.title !== 'Chat') // Optionally remove Chat for company view
+      ];
+    } else {
+      // Default 'app' context
+      return [
+        {
+          title: "Jobs",
+          icon: LayoutDashboard,
+          href: "/jobs",
+        },
+        ...baseItems
+      ];
+    }
+  };
+
+  const currentItems = getItems();
 
   return (
     <SidebarGroup className={className}>
       <SidebarMenu>
-        {searchItems.map((item) => (
+        {currentItems.map((item) => (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
               asChild={!!item.href}
