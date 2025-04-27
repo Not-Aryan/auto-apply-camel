@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useEffect } from 'react'
 
 const projectSchema = z.object({
   projects: z.array(z.object({
@@ -37,29 +38,41 @@ type ProjectsFormProps = {
   currentStep: number
 }
 
+// Define the default mock project entry
+const defaultProjectEntry = {
+  name: "Fill: AI-Native Spreadsheet",
+  description: "- Built AI spreadsheet that automates tedious data collection tasks with AI agents - capable of filling in 200 cells a minute\n- Deploys AI agents to research web data and query internal documents, reducing data analysis time by 70%\n- Built custom document chunking and analysis models, reaching 97% retrieval accuracies on industry-specific data",
+  url: "https://drive.google.com/file/d/1mcA8fAfpFCowcvDioDDJIYnk-4Rsuud0/view?usp=sharing",
+  githubUrl: "", // Not provided
+  technologies: [], // Not provided, default to empty
+  startDate: "", // Not provided
+  endDate: "", // Not provided
+  isOngoing: false, // Assuming not ongoing unless specified
+};
+
 export function ProjectsForm({ onNext, initialData, handleBack, currentStep }: ProjectsFormProps) {
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
-    defaultValues: initialData || {
-      projects: [
-        {
-          name: '',
-          description: '',
-          url: '',
-          githubUrl: '',
-          technologies: [],
-          startDate: '',
-          endDate: '',
-          isOngoing: false,
-        },
-      ],
-    },
+    // Use initialData if it exists and has entries, otherwise use the default mock entry
+    defaultValues: 
+      initialData?.projects && initialData.projects.length > 0
+        ? initialData
+        : { projects: [defaultProjectEntry] },
   })
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'projects',
   })
+
+  // Reset form if initialData changes
+  useEffect(() => {
+    if (initialData?.projects && initialData.projects.length > 0) {
+      form.reset(initialData);
+    } else {
+      form.reset({ projects: [defaultProjectEntry] });
+    }
+  }, [initialData, form.reset]);
 
   const onSubmit = (data: z.infer<typeof projectSchema>) => {
     onNext(data)

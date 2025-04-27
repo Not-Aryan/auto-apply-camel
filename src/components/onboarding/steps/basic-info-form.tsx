@@ -25,6 +25,19 @@ const basicInfoSchema = z.object({
   portfolioUrl: z.string().url().optional().or(z.literal("")),
 });
 
+// Mock data based on the provided image
+const mockBasicInfoData = {
+  phoneNumber: "9256997756",
+  address: "305 Memorial Dr",
+  city: "Cambridge",
+  state: "MA",
+  country: "United States",
+  zipCode: "02139",
+  linkedinUrl: "https://www.linkedin.com/in/aryan-jain-9062871b8/",
+  githubUrl: "https://github.com/Not-Aryan",
+  portfolioUrl: "", // Portfolio URL wasn't in the image, keeping it empty
+};
+
 type BasicInfoFormProps = {
   onNext: (data: z.infer<typeof basicInfoSchema>) => void;
   initialData?: z.infer<typeof basicInfoSchema>;
@@ -36,34 +49,36 @@ export function BasicInfoForm({ onNext, initialData, handleBack, currentStep }: 
   const form = useForm<z.infer<typeof basicInfoSchema>>({
     resolver: zodResolver(basicInfoSchema),
     defaultValues: {
-      phoneNumber: initialData?.phoneNumber || "",
-      address: initialData?.address || "",
-      city: initialData?.city || "",
-      state: initialData?.state || "",
-      country: initialData?.country || "",
-      zipCode: initialData?.zipCode || "",
-      linkedinUrl: initialData?.linkedinUrl || "",
-      githubUrl: initialData?.githubUrl || "",
-      portfolioUrl: initialData?.portfolioUrl || "",
+      // Use mock data for prefilling, falling back to initialData if provided, then empty strings
+      phoneNumber: mockBasicInfoData.phoneNumber || initialData?.phoneNumber || "",
+      address: mockBasicInfoData.address || initialData?.address || "",
+      city: mockBasicInfoData.city || initialData?.city || "",
+      state: mockBasicInfoData.state || initialData?.state || "",
+      country: mockBasicInfoData.country || initialData?.country || "",
+      zipCode: mockBasicInfoData.zipCode || initialData?.zipCode || "",
+      linkedinUrl: mockBasicInfoData.linkedinUrl || initialData?.linkedinUrl || "",
+      githubUrl: mockBasicInfoData.githubUrl || initialData?.githubUrl || "",
+      portfolioUrl: mockBasicInfoData.portfolioUrl || initialData?.portfolioUrl || "",
     },
   });
 
-  // Reset form with initialData when it changes
+  // Reset form with initialData when it changes (if needed for other flows)
   useEffect(() => {
     if (initialData) {
       form.reset({
-        phoneNumber: initialData.phoneNumber || "",
-        address: initialData.address || "",
-        city: initialData.city || "",
-        state: initialData.state || "",
-        country: initialData.country || "",
-        zipCode: initialData.zipCode || "",
-        linkedinUrl: initialData.linkedinUrl || "",
-        githubUrl: initialData.githubUrl || "",
-        portfolioUrl: initialData.portfolioUrl || "",
+        // Prioritize initialData if provided, otherwise use mock data
+        phoneNumber: initialData.phoneNumber || mockBasicInfoData.phoneNumber || "",
+        address: initialData.address || mockBasicInfoData.address || "",
+        city: initialData.city || mockBasicInfoData.city || "",
+        state: initialData.state || mockBasicInfoData.state || "",
+        country: initialData.country || mockBasicInfoData.country || "",
+        zipCode: initialData.zipCode || mockBasicInfoData.zipCode || "",
+        linkedinUrl: initialData.linkedinUrl || mockBasicInfoData.linkedinUrl || "",
+        githubUrl: initialData.githubUrl || mockBasicInfoData.githubUrl || "",
+        portfolioUrl: initialData.portfolioUrl || mockBasicInfoData.portfolioUrl || "",
       });
     }
-  }, [initialData]);
+  }, [initialData, form.reset]);
 
   const onSubmit = async (data: z.infer<typeof basicInfoSchema>) => {
     try {

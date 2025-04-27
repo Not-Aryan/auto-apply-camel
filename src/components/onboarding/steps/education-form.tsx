@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useEffect } from 'react'
 
 const educationSchema = z.object({
   educations: z.array(z.object({
@@ -37,30 +38,43 @@ type EducationFormProps = {
   currentStep: number
 }
 
+// Define the default mock education entry
+const defaultEducationEntry = {
+  university: "MIT",
+  degree: "Bachelors",
+  field: "Computer Science",
+  gpa: "4.0",
+  startDate: "2023-08",
+  endDate: "",
+  isCurrently: true,
+  location: "Cambridge, MA",
+  description: "",
+};
+
 export function EducationForm({ onNext, initialData, handleBack, currentStep }: EducationFormProps) {
   const form = useForm<z.infer<typeof educationSchema>>({
     resolver: zodResolver(educationSchema),
-    defaultValues: initialData || {
-      educations: [
-        {
-          university: '',
-          degree: '',
-          field: '',
-          gpa: '',
-          startDate: '',
-          endDate: '',
-          isCurrently: false,
-          location: '',
-          description: '',
-        },
-      ],
-    },
+    // Use initialData if it exists and has entries, otherwise use the default mock entry
+    defaultValues: 
+      initialData?.educations && initialData.educations.length > 0
+        ? initialData
+        : { educations: [defaultEducationEntry] },
   })
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'educations',
   })
+
+  // Reset form if initialData changes (optional, but good practice)
+  useEffect(() => {
+    if (initialData?.educations && initialData.educations.length > 0) {
+      form.reset(initialData);
+    } else {
+      // If initialData becomes empty or undefined, reset to the default mock entry
+      form.reset({ educations: [defaultEducationEntry] });
+    }
+  }, [initialData, form.reset]);
 
   const onSubmit = (data: z.infer<typeof educationSchema>) => {
     onNext(data)

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from '@/lib/utils'
+import { useEffect } from 'react'
 
 const experienceSchema = z.object({
   experiences: z.array(z.object({
@@ -54,6 +55,20 @@ type ExperienceFormProps = {
   currentStep: number
 }
 
+// Define the default mock experience entry
+const defaultExperienceEntry = {
+  company: "Kisho (YC S24)",
+  position: "Founder",
+  location: "San Francisco",
+  type: "Full-time",
+  startDate: "2024-05",
+  endDate: "2024-10",
+  isCurrently: false, // Checkbox is unchecked in the image
+  description: "- Developed AI-native Jupyter Notebook, halving the time needed to build ML workflows, with 2000+ waitlist signups. \n - Engineered real-time error healing system in Jupyter, reducing debug time by 70% and optimizing large-scale compute usage.",
+  achievements: "", // Empty in the image
+  technologies: ["React", "Python", "AWS"],
+};
+
 export function ExperienceForm({ 
   onNext, 
   initialData, 
@@ -62,28 +77,26 @@ export function ExperienceForm({
 }: ExperienceFormProps) {
   const form = useForm<z.infer<typeof experienceSchema>>({
     resolver: zodResolver(experienceSchema),
-    defaultValues: initialData || {
-      experiences: [
-        {
-          company: '',
-          position: '',
-          location: '',
-          type: '',
-          startDate: '',
-          endDate: '',
-          isCurrently: false,
-          description: '',
-          achievements: '',
-          technologies: [],
-        },
-      ],
-    },
+    // Use initialData if it exists and has entries, otherwise use the default mock entry
+    defaultValues: 
+      initialData?.experiences && initialData.experiences.length > 0
+        ? initialData
+        : { experiences: [defaultExperienceEntry] },
   })
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'experiences',
   })
+
+  // Reset form if initialData changes
+  useEffect(() => {
+    if (initialData?.experiences && initialData.experiences.length > 0) {
+      form.reset(initialData);
+    } else {
+      form.reset({ experiences: [defaultExperienceEntry] });
+    }
+  }, [initialData, form.reset]);
 
   const onSubmit = (data: z.infer<typeof experienceSchema>) => {
     onNext(data)
@@ -130,52 +143,54 @@ export function ExperienceForm({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name={`experiences.${index}.position`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Position</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g., Software Engineer" 
-                          {...field}
-                          className="h-9 px-3 py-1 text-sm border border-gray-200 hover:border-gray-300 focus-visible:ring-1 rounded-md transition-colors"
-                        />
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={`experiences.${index}.type`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium text-gray-700">Employment Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`experiences.${index}.position`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Position</FormLabel>
                         <FormControl>
-                          <SelectTrigger className="h-9 px-3 py-1 text-sm border border-gray-200 hover:border-gray-300 focus-visible:ring-1 rounded-md transition-colors">
-                            <SelectValue placeholder="Select employment type" />
-                          </SelectTrigger>
+                          <Input 
+                            placeholder="e.g., Software Engineer" 
+                            {...field}
+                            className="h-9 px-3 py-1 text-sm border border-gray-200 hover:border-gray-300 focus-visible:ring-1 rounded-md transition-colors"
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {employmentTypes.map((type) => (
-                            <SelectItem 
-                              key={type} 
-                              value={type}
-                              className="text-sm"
-                            >
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name={`experiences.${index}.type`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium text-gray-700">Employment Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-9 px-3 py-1 text-sm border border-gray-200 hover:border-gray-300 focus-visible:ring-1 rounded-md transition-colors">
+                              <SelectValue placeholder="Select employment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {employmentTypes.map((type) => (
+                              <SelectItem 
+                                key={type} 
+                                value={type}
+                                className="text-sm"
+                              >
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -272,7 +287,7 @@ export function ExperienceForm({
                   )}
                 />
 
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name={`experiences.${index}.achievements`}
                   render={({ field }) => (
@@ -288,7 +303,7 @@ export function ExperienceForm({
                       <FormMessage className="text-xs" />
                     </FormItem>
                   )}
-                />
+                /> */}
 
                 <FormField
                   control={form.control}

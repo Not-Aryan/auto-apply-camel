@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useEffect } from 'react'
 
 const skillSchema = z.object({
   skills: z.array(z.object({
@@ -53,24 +54,36 @@ type SkillsFormProps = {
   currentStep: number
 }
 
+// Define the default mock skill entry
+const defaultSkillEntry = {
+  name: "Python",
+  proficiency: "Advanced",
+  category: "Programming Language",
+};
+
 export function SkillsForm({ onNext, initialData, handleBack, currentStep }: SkillsFormProps) {
   const form = useForm<z.infer<typeof skillSchema>>({
     resolver: zodResolver(skillSchema),
-    defaultValues: initialData || {
-      skills: [
-        {
-          name: '',
-          proficiency: '',
-          category: '',
-        },
-      ],
-    },
+    // Use initialData if it exists and has entries, otherwise use the default mock entry
+    defaultValues: 
+      initialData?.skills && initialData.skills.length > 0
+        ? initialData
+        : { skills: [defaultSkillEntry] },
   })
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'skills',
   })
+
+  // Reset form if initialData changes
+  useEffect(() => {
+    if (initialData?.skills && initialData.skills.length > 0) {
+      form.reset(initialData);
+    } else {
+      form.reset({ skills: [defaultSkillEntry] });
+    }
+  }, [initialData, form.reset]);
 
   const onSubmit = (data: z.infer<typeof skillSchema>) => {
     onNext(data)
