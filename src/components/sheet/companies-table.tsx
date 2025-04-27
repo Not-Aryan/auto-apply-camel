@@ -101,7 +101,11 @@ const columns: ColumnDef<Company>[] = [
         <span className="text-sm font-light text-gray-500">Job Title</span>
       </div>
     ),
-    cell: () => <div className="text-[13px] font-normal">SWE Intern</div>,
+    // cell: () => <div className="text-[13px] font-normal">SWE Intern</div>,
+    cell: ({ row }) => {
+      const jobTitle = row.original.jobTitle; // Access jobTitle from the row's original data
+      return <div className="text-[13px] font-normal">{jobTitle}</div>;
+    },
   },
   {
     accessorKey: "status",
@@ -180,29 +184,6 @@ const columns: ColumnDef<Company>[] = [
       );
     },
   },
-  // {
-  //   accessorKey: "accountOwner",
-  //   size: 200,
-  //   header: () => (
-  //     <div className="flex items-center gap-1">
-  //       <UserCircle2 className="h-3.5 w-3.5 text-gray-500" />
-  //       <span className="text-sm font-light text-gray-500">Recruiter?</span>
-  //     </div>
-  //   ),
-  //   cell: ({ row }) => {
-  //     const owner = row.getValue("accountOwner") as Company["accountOwner"];
-  //     if (!owner) return <div className="text-sm text-gray-400">-</div>;
-
-  //     return (
-  //       <div className="flex items-center gap-1">
-  //         <div className="w-5 h-5 bg-green-100 text-green-800 flex items-center justify-center text-xs font-light rounded-full">
-  //           {owner.name.charAt(0)}
-  //         </div>
-  //         <span className="text-[13px] font-normal">{owner.name}</span>
-  //       </div>
-  //     );
-  //   },
-  // },
   {
     accessorKey: "tasks",
     size: 150,
