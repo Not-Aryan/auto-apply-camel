@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   ClipboardList, 
   X, 
@@ -57,8 +57,14 @@ interface Criterion {
   hardFilter: boolean;
 }
 
+// Define Props type for the dialog
+interface EvaluationDialogProps {
+  // initialCriteria: string; // No longer needed, dialog manages its own initial list
+  onSave: (newCriteria: Criterion[]) => void; // Expecting the array now
+}
+
 // Initial mock criteria data
-const initialCriteria: Criterion[] = [
+const initialMockCriteria: Criterion[] = [
   { id: "crit-0", text: "Candidates from MIT", hardFilter: true },
   { id: "crit-1", text: "Worked at a Fortune 500 company", hardFilter: true },
   { id: "crit-2", text: "Senior SWE Experience", hardFilter: true },
@@ -132,9 +138,8 @@ function SortableCriterionItem({ id, criterion, updateCriterionText, toggleHardF
   );
 }
 
-export function EvaluationDialog() {
-  const [criteria, setCriteria] = useState<Criterion[]>(initialCriteria);
-  const [additionalNotes, setAdditionalNotes] = useState("");
+export function EvaluationDialog({ /* initialCriteria, */ onSave }: EvaluationDialogProps) { // Removed initialCriteria prop
+  const [criteria, setCriteria] = useState<Criterion[]>(initialMockCriteria);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -153,11 +158,13 @@ export function EvaluationDialog() {
   };
 
   const updateCriterionText = (idToUpdate: string, newText: string) => {
-    setCriteria(prev => 
-      prev.map(item => 
+    setCriteria(prev => {
+      const updatedCriteria = prev.map(item => 
         item.id === idToUpdate ? { ...item, text: newText } : item
-      )
-    );
+      );
+      console.log("Updated criteria array state:", updatedCriteria); // Log state update
+      return updatedCriteria;
+    });
   };
 
   const toggleHardFilter = (idToToggle: string) => {
@@ -180,6 +187,12 @@ export function EvaluationDialog() {
       });
     }
   }
+
+  const handleSave = () => {
+    // Pass the whole criteria array state back to the parent
+    console.log("Dialog saving criteria array:", criteria); 
+    onSave(criteria); // Pass the array
+  };
 
   return (
     <DialogContent className="sm:max-w-6xl max-h-[80vh] overflow-y-auto p-0">
@@ -311,17 +324,6 @@ export function EvaluationDialog() {
                     Add Criterion
                   </Button>
                 </div>
-                <div>
-                  <Label htmlFor="additional-notes" className="mb-1 block text-sm font-medium leading-6 text-gray-900">Additional Notes</Label>
-                  <Textarea 
-                    id="additional-notes" 
-                    rows={3} 
-                    placeholder="Provide some additional notes" 
-                    value={additionalNotes}
-                    onChange={(e) => setAdditionalNotes(e.target.value)}
-                  />
-                  <div className="mt-1 text-start text-xs text-gray-500">Mercor also uses these notes to intelligently sort candidates based on your criteria.</div>
-                </div>
               </AccordionContent>
             </AccordionItem>
 
@@ -345,9 +347,9 @@ export function EvaluationDialog() {
             <Button variant="outline" className="w-full">Close listing</Button>
           </DialogClose>
         </div>
-         {/* Changed to DialogClose for simplicity */}
+         {/* Add DialogClose wrapper back */}
         <DialogClose asChild>
-          <Button type="submit" className="w-full">Save listing</Button> 
+          <Button type="button" onClick={handleSave} className="w-full">Save listing</Button> 
         </DialogClose>
       </DialogFooter>
     </DialogContent>

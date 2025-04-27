@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { 
@@ -26,6 +26,15 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TableSkeleton } from "@/components/company/table-skeleton";
+
+// Define Criterion type locally if not imported
+interface Criterion {
+  id: string;
+  text: string;
+  hardFilter: boolean;
+}
 
 // Define candidate type
 interface Candidate {
@@ -88,7 +97,7 @@ const parseCsvData = (csvString: string): Candidate[] => {
     if (resumeUrl.includes('drive.google.com/open?id=')) {
       const fileId = resumeUrl.split('id=')[1];
       if (fileId) {
-        resumeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        resumeUrl = `https://drive.google.com/file/d/${fileId}/view`;
       }
     }
 
@@ -117,6 +126,12 @@ const parseCsvData = (csvString: string): Candidate[] => {
 
 const mockCandidates: Candidate[] = parseCsvData(csvData);
 
+// Default initial criteria state
+const initialCriteriaState: Criterion[] = [
+  { id: "crit-0", text: "Candidates from MIT", hardFilter: true },
+  // Add others if needed to match dialog's initial state
+];
+
 const mockStats = {
   leads: mockCandidates.filter((c: Candidate) => c.status === 'Lead').length,
   reviewApplication: mockCandidates.filter((c: Candidate) => c.status === 'Review').length,
@@ -132,14 +147,86 @@ const statusColors: Record<string, string> = {
   Rejected: "bg-red-50 text-red-600 ring-red-600/20"
 };
 
+// --- Sorting Logic --- (Update signature and condition)
+const QUANT_CANDIDATES = [
+  "Jennifer Lawrence",
+  "Darren Yao",
+  "Danial Hosseintabar",
+  "Austin Chen",
+  "Laurie Wang",
+];
+const LAST_CANDIDATE = "Adam";
+
+const sortCandidates = (candidates: Candidate[], criteria: Criterion[]): Candidate[] => {
+  console.log("Sorting with criteria array:", criteria);
+  // Check the text of the *first* criterion
+  const firstCriterionText = criteria[0]?.text?.toLowerCase() || ""; 
+  
+  if (firstCriterionText.includes("quant internships")) {
+    const quant: Candidate[] = [];
+    const adam: Candidate[] = [];
+    const others: Candidate[] = [];
+
+    candidates.forEach(candidate => {
+      if (QUANT_CANDIDATES.includes(candidate.name)) {
+        quant.push(candidate);
+      } else if (candidate.name === LAST_CANDIDATE) {
+        adam.push(candidate);
+      } else {
+        others.push(candidate);
+      }
+    });
+
+    // Shuffle the 'others' array using Fisher-Yates algorithm
+    for (let i = others.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [others[i], others[j]] = [others[j], others[i]]; // Swap elements
+    }
+
+    // Order: Quant candidates, then randomly shuffled others, then Adam
+    return [...quant, ...others, ...adam];
+  } 
+  // Return original order or implement other criteria logic here
+  return candidates;
+};
+
+// --- Component ---
 export default function CompanyDashboard() {
   const { companyId } = useParams();
   const { user } = useUser();
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState<Candidate | null>(null);
+  const [evaluationCriteria, setEvaluationCriteria] = useState<Criterion[]>(initialCriteriaState);
+  const [isRankingLoading, setIsRankingLoading] = useState(false);
   const itemsPerPage = 10;
+
+  const handleSaveCriteria = (newCriteria: Criterion[]) => {
+    console.log("Received criteria array from dialog:", newCriteria);
+    setIsRankingLoading(true);
+    setEvaluationCriteria(newCriteria);
+    setTimeout(() => {
+      setIsRankingLoading(false);
+      setCurrentPage(1);
+    }, 1500);
+  };
+
+  const sortedCandidates = useMemo(() => {
+      return sortCandidates([...mockCandidates], evaluationCriteria);
+  }, [evaluationCriteria]);
+
+  const filteredCandidates = useMemo(() => {
+      return sortedCandidates.filter((candidate: Candidate) =>
+          candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  }, [sortedCandidates, searchQuery]);
+
+  const totalCandidates = filteredCandidates.length;
+  const totalPages = Math.ceil(totalCandidates / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCandidates = filteredCandidates.slice(startIndex, endIndex);
 
   const toggleSelectCandidate = (id: string) => {
     setSelectedCandidates(prev => ({
@@ -147,17 +234,6 @@ export default function CompanyDashboard() {
       [id]: !prev[id]
     }));
   };
-
-  const filteredCandidates = mockCandidates.filter((candidate: Candidate) =>
-    candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const totalCandidates = filteredCandidates.length;
-  const totalPages = Math.ceil(totalCandidates / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentCandidates = filteredCandidates.slice(startIndex, endIndex);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -171,7 +247,7 @@ export default function CompanyDashboard() {
 
   return (
     <ResizablePanelGroup direction="horizontal" className="min-h-screen">
-      <ResizablePanel defaultSize={selectedCandidateForDrawer ? 70 : 100}>
+      <ResizablePanel defaultSize={100}>
         <section className="mx-auto w-full px-5 pb-20 sm:px-10 mt-10 max-w-screen sm:max-w-5xl">
           <div className="relative flow-root w-full pb-10">
             <div className="inline-block w-full align-middle">
@@ -201,7 +277,9 @@ export default function CompanyDashboard() {
                         </div>
                       </Button>
                     </DialogTrigger>
-                    <EvaluationDialog /> 
+                    <EvaluationDialog 
+                      onSave={handleSaveCriteria} 
+                    /> 
                   </Dialog>
                   <Button className="rounded-xl px-3 py-2 text-sm font-semibold">
                     <section className="group relative">
@@ -390,12 +468,13 @@ export default function CompanyDashboard() {
                 <div className="flex max-w-6xl flex-col overflow-x-auto">
                   <table className="min-w-full table-fixed divide-y divide-gray-300">
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {currentCandidates.length > 0 ? (
+                      {isRankingLoading ? (
+                        <TableSkeleton rows={itemsPerPage} />
+                      ) : currentCandidates.length > 0 ? (
                         currentCandidates.map((candidate) => (
                           <tr 
                             key={candidate.id} 
-                            className="border-b-none group w-full cursor-pointer transition-all duration-300 hover:bg-gray-50"
-                            onClick={() => setSelectedCandidateForDrawer(candidate)}
+                            className="border-b-none group w-full transition-all duration-300 hover:bg-gray-50"
                           >
                             <td className="relative w-12 px-7 sm:px-6">
                               <div onClick={(e) => e.stopPropagation()}> 
@@ -421,9 +500,15 @@ export default function CompanyDashboard() {
                             </td>
                             <td className="hidden whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-3 lg:flex w-full">
                               <div className="flex justify-end rounded-e-md ml-auto w-fit"> 
-                                <div className="relative flex items-center overflow-hidden text-indigo-600 whitespace-nowrap px-3 py-1 text-left text-sm font-semibold outline-none ring-0 transition-all duration-300 group-hover:text-indigo-700">
-                                  View application&nbsp;&nbsp;<span className="ml-1 transition-all"> →</span>
-                                </div>
+                                <a 
+                                  href={candidate.resumeUrl || '#'} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`relative flex items-center overflow-hidden text-indigo-600 whitespace-nowrap px-3 py-1 text-left text-sm font-semibold outline-none ring-0 transition-all duration-300 group-hover:text-indigo-700 ${!candidate.resumeUrl ? 'cursor-not-allowed text-gray-400 group-hover:text-gray-400' : ''}`}
+                                >
+                                  View Resume&nbsp;&nbsp;<span className="ml-1 transition-all"> →</span>
+                                </a>
                               </div>
                             </td>
                           </tr>
@@ -443,47 +528,6 @@ export default function CompanyDashboard() {
           </div>
         </section>
       </ResizablePanel>
-      
-      {selectedCandidateForDrawer && (
-        <>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
-            <div className="flex flex-col h-full p-4">
-              <div className="flex justify-between items-center pb-4 border-b mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold">{selectedCandidateForDrawer.name}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedCandidateForDrawer.email} - {selectedCandidateForDrawer.status}</p>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full"
-                  onClick={() => setSelectedCandidateForDrawer(null)}
-                >
-                  <XIcon className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              <div className="flex-1 overflow-auto mb-4">
-                 {selectedCandidateForDrawer.resumeUrl ? (
-                    <iframe 
-                      key={selectedCandidateForDrawer.resumeUrl}
-                      src={selectedCandidateForDrawer.resumeUrl} 
-                      className="w-full h-full border-0"
-                      title={`${selectedCandidateForDrawer.name}'s Resume`}
-                    />
-                 ) : (
-                   <p className="text-gray-500 text-center mt-10">No resume URL provided.</p>
-                 )}
-              </div>
-
-              <div className="mt-auto border-t pt-4">
-                <Button variant="outline" onClick={() => setSelectedCandidateForDrawer(null)}>Close</Button>
-              </div>
-            </div>
-          </ResizablePanel>
-        </>
-      )}
     </ResizablePanelGroup>
   );
 }
