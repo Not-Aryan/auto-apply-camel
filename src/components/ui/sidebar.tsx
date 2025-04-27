@@ -185,9 +185,9 @@ const Sidebar = React.forwardRef<
           <div className="mt-3 ml-3">
             <Image
               src="https://cdn.prod.website-files.com/66abefe349b0c8356d750497/66e9fc867fe9b29bfd9c81a3_coframe-logo.svg"
-              alt="Logo"
-              width={24}
+              width={100}
               height={24}
+              alt="Logo"
               className="inline-block max-w-full flex-none align-middle filter invert"
             />
           </div>
