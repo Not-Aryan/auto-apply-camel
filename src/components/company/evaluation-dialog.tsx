@@ -59,10 +59,10 @@ interface Criterion {
 
 // Initial mock criteria data
 const initialCriteria: Criterion[] = [
-  { id: "crit-0", text: "Candidates from MIT", hardFilter: false },
-  { id: "crit-1", text: "Worked at a Fortune 500 company", hardFilter: false },
-  { id: "crit-2", text: "Senior SWE Experience", hardFilter: false },
-  { id: "crit-3", text: "Experience Training LLMs", hardFilter: false },
+  { id: "crit-0", text: "Candidates from MIT", hardFilter: true },
+  { id: "crit-1", text: "Worked at a Fortune 500 company", hardFilter: true },
+  { id: "crit-2", text: "Senior SWE Experience", hardFilter: true },
+  { id: "crit-3", text: "Experience Training LLMs", hardFilter: true },
 ];
 
 // Sortable Item Component
@@ -145,7 +145,7 @@ export function EvaluationDialog() {
 
   const addCriterion = () => {
     const newId = `crit-${Date.now()}`; // Simple unique ID generation
-    setCriteria(prev => [...prev, { id: newId, text: "", hardFilter: false }]);
+    setCriteria(prev => [...prev, { id: newId, text: "", hardFilter: true }]);
   };
 
   const deleteCriterion = (idToDelete: string) => {
