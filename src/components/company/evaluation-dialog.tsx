@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState } from "react";
 import { 
   ClipboardList, 
   X, 
@@ -30,17 +31,155 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 
-// TODO: Implement state management for inputs, criteria, etc.
+// Define Criterion type
+interface Criterion {
+  id: string;
+  text: string;
+  hardFilter: boolean;
+}
+
+// Initial mock criteria data
+const initialCriteria: Criterion[] = [
+  { id: "crit-0", text: "Candidates from MIT", hardFilter: false },
+  { id: "crit-1", text: "Worked at a Fortune 500 company", hardFilter: false },
+  { id: "crit-2", text: "Senior SWE Experience", hardFilter: false },
+  { id: "crit-3", text: "Experience Training LLMs", hardFilter: false },
+];
+
+// Sortable Item Component
+function SortableCriterionItem({ id, criterion, updateCriterionText, toggleHardFilter, deleteCriterion }: {
+  id: string;
+  criterion: Criterion;
+  updateCriterionText: (id: string, text: string) => void;
+  toggleHardFilter: (id: string) => void;
+  deleteCriterion: (id: string) => void;
+}) {
+  const { 
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined, // Ensure dragging item is on top
+    boxShadow: isDragging ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' : undefined,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="flex gap-2 rounded-lg border border-gray-200 bg-white p-1.5 items-center touch-none"
+      data-testid={`criteria-item-${criterion.id}`}
+    >
+      <div 
+        {...attributes} 
+        {...listeners} 
+        className="group flex cursor-grab items-center rounded-md bg-gray-100 px-2 hover:bg-gray-200 self-stretch touch-none"
+      >
+        <GripVertical className="h-4 w-4 text-gray-400 group-hover:text-gray-500" />
+      </div>
+      <div className="flex-1">
+        <Input 
+          placeholder="Add a criterion" 
+          value={criterion.text} // Use value for controlled input
+          onChange={(e) => updateCriterionText(id, e.target.value)} // Update state on change
+          className="mt-0 border-0 ring-0 focus-visible:ring-1 focus-visible:ring-indigo-600 focus-visible:ring-inset"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        {/* TODO: Add Tooltip for Hard Filter */}
+        <Switch 
+          id={`hard-filter-${id}`} 
+          checked={criterion.hardFilter} 
+          onCheckedChange={() => toggleHardFilter(id)}
+          aria-label="Hard Filter"
+        />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-10 w-10 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+          onClick={() => deleteCriterion(id)} // Add delete handler
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function EvaluationDialog() {
-  // Mock criteria data
-  const criteria = [
-    { id: "0", text: "Candidates from MIT", hardFilter: false },
-    { id: "1", text: "Worked at a Fortune 500 company", hardFilter: false },
-    { id: "2", text: "Senior SWE Experience", hardFilter: false },
-    { id: "3", text: "Experience Training LLMs", hardFilter: false },
-  ];
+  const [criteria, setCriteria] = useState<Criterion[]>(initialCriteria);
+  const [additionalNotes, setAdditionalNotes] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const addCriterion = () => {
+    const newId = `crit-${Date.now()}`; // Simple unique ID generation
+    setCriteria(prev => [...prev, { id: newId, text: "", hardFilter: false }]);
+  };
+
+  const deleteCriterion = (idToDelete: string) => {
+    setCriteria(prev => prev.filter(item => item.id !== idToDelete));
+  };
+
+  const updateCriterionText = (idToUpdate: string, newText: string) => {
+    setCriteria(prev => 
+      prev.map(item => 
+        item.id === idToUpdate ? { ...item, text: newText } : item
+      )
+    );
+  };
+
+  const toggleHardFilter = (idToToggle: string) => {
+    setCriteria(prev => 
+      prev.map(item => 
+        item.id === idToToggle ? { ...item, hardFilter: !item.hardFilter } : item
+      )
+    );
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    
+    if (over && active.id !== over.id) {
+      setCriteria((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }
 
   return (
     <DialogContent className="sm:max-w-6xl max-h-[80vh] overflow-y-auto p-0">
@@ -137,44 +276,51 @@ export function EvaluationDialog() {
                 <span>Evaluation Criteria</span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pt-4 pb-4 bg-white rounded-b-lg border border-t-0 border-gray-200">
-                <div className="space-y-4">
-                  {criteria.map((item, index) => (
-                    <div key={item.id} data-testid={`criteria-item-${index}`} className="flex gap-2 rounded-lg border border-gray-200 bg-white p-1.5 items-center">
-                      <div role="button" className="group flex cursor-grab items-center rounded-md bg-gray-100 px-2 hover:bg-gray-200 self-stretch">
-                        <GripVertical className="h-4 w-4 text-gray-400 group-hover:text-gray-500" />
-                      </div>
-                      <div className="flex-1">
-                        <Input 
-                          placeholder="Add a criterion" 
-                          defaultValue={item.text}
-                          className="mt-0 border-0 ring-0 focus-visible:ring-1 focus-visible:ring-indigo-600 focus-visible:ring-inset"
-                          />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {/* TODO: Add Tooltip for Hard Filter */}
-                        <Switch 
-                          id={`hard-filter-${item.id}`} 
-                          // checked={item.hardFilter} 
-                          // onCheckedChange={...} 
-                          aria-label="Hard Filter"
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                  modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
+                >
+                  <SortableContext 
+                    items={criteria}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-4">
+                      {criteria.map((item) => (
+                        <SortableCriterionItem 
+                          key={item.id} 
+                          id={item.id}
+                          criterion={item}
+                          updateCriterionText={updateCriterionText}
+                          toggleHardFilter={toggleHardFilter}
+                          deleteCriterion={deleteCriterion}
                         />
-                        <Button variant="ghost" size="icon" className="h-10 w-10 p-0 text-red-600 hover:bg-red-50 hover:text-red-700">
-                           <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                  <div className="mx-auto mt-6 w-fit">
-                    <Button variant="ghost" size="sm" className="text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Criterion
-                    </Button>
-                  </div>
-                  <div>
-                    <Label htmlFor="additional-notes" className="mb-1 block text-sm font-medium leading-6 text-gray-900">Additional Notes</Label>
-                    <Textarea id="additional-notes" rows={3} placeholder="Provide some additional notes" />
-                    <div className="mt-1 text-start text-xs text-gray-500">Mercor also uses these notes to intelligently sort candidates based on your criteria.</div>
-                  </div>
+                  </SortableContext>
+                </DndContext>
+                <div className="mx-auto mt-6 w-fit">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                    onClick={addCriterion}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Criterion
+                  </Button>
+                </div>
+                <div>
+                  <Label htmlFor="additional-notes" className="mb-1 block text-sm font-medium leading-6 text-gray-900">Additional Notes</Label>
+                  <Textarea 
+                    id="additional-notes" 
+                    rows={3} 
+                    placeholder="Provide some additional notes" 
+                    value={additionalNotes}
+                    onChange={(e) => setAdditionalNotes(e.target.value)}
+                  />
+                  <div className="mt-1 text-start text-xs text-gray-500">Mercor also uses these notes to intelligently sort candidates based on your criteria.</div>
                 </div>
               </AccordionContent>
             </AccordionItem>
