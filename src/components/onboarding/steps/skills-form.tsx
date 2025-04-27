@@ -49,9 +49,11 @@ const skillCategories = [
 type SkillsFormProps = {
   onNext: (data: z.infer<typeof skillSchema>) => void
   initialData?: z.infer<typeof skillSchema>
+  handleBack: () => void
+  currentStep: number
 }
 
-export function SkillsForm({ onNext, initialData }: SkillsFormProps) {
+export function SkillsForm({ onNext, initialData, handleBack, currentStep }: SkillsFormProps) {
   const form = useForm<z.infer<typeof skillSchema>>({
     resolver: zodResolver(skillSchema),
     defaultValues: initialData || {
@@ -177,8 +179,24 @@ export function SkillsForm({ onNext, initialData }: SkillsFormProps) {
           Add Another Skill
         </Button>
 
-        <div className="flex justify-end mt-6">
-          <Button type="submit" variant="outline">Complete Onboarding</Button>
+        <div className="flex justify-between gap-4 mt-6">
+          {currentStep > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </Button>
+          )}
+          {currentStep === 0 && <div className="flex-1" /> }
+          <Button 
+            type="submit" 
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+          >
+            Complete Onboarding
+          </Button>
         </div>
       </form>
     </Form>

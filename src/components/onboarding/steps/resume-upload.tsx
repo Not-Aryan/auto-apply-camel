@@ -7,9 +7,11 @@ import { Upload, File, X, CheckCircle2, AlertCircle } from 'lucide-react'
 type ResumeUploadProps = {
   onNext: (resumeUrl: string) => void
   initialData?: { resumeUrl: string }
+  handleBack: () => void
+  currentStep: number
 }
 
-export function ResumeUpload({ onNext, initialData }: ResumeUploadProps) {
+export function ResumeUpload({ onNext, initialData, handleBack, currentStep }: ResumeUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
@@ -143,6 +145,19 @@ export function ResumeUpload({ onNext, initialData }: ResumeUploadProps) {
           Your resume helps us tailor job recommendations and automate applications for you.
         </div>
       </CardContent>
+      
+      <div className="flex justify-start gap-4 p-6 pt-0">
+        {currentStep > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleBack}
+            className="w-1/2"
+          >
+            Back
+          </Button>
+        )}
+      </div>
     </Card>
   )
 }

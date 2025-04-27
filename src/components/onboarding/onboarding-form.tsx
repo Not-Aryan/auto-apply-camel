@@ -170,11 +170,21 @@ export function OnboardingForm() {
     switch (currentStep) {
       case 0:
         return (
-          <ResumeUpload onNext={handleNext} initialData={formData.resume} />
+          <ResumeUpload
+            onNext={handleNext}
+            initialData={formData.resume}
+            handleBack={handleBack}
+            currentStep={currentStep}
+          />
         );
       case 1:
         return (
-          <BasicInfoForm onNext={handleNext} initialData={formData.basicInfo} />
+          <BasicInfoForm
+            onNext={handleNext}
+            initialData={formData.basicInfo}
+            handleBack={handleBack}
+            currentStep={currentStep}
+          />
         );
       case 2:
         return (
@@ -192,6 +202,8 @@ export function OnboardingForm() {
                 isCurrently: edu.isCurrent,
               })),
             }}
+            handleBack={handleBack}
+            currentStep={currentStep}
           />
         );
       case 3:
@@ -212,6 +224,8 @@ export function OnboardingForm() {
                 technologies: exp.technologies || [],
               })),
             }}
+            handleBack={handleBack}
+            currentStep={currentStep}
           />
         );
       case 4:
@@ -230,6 +244,8 @@ export function OnboardingForm() {
                 isOngoing: proj.isOngoing,
               })),
             }}
+            handleBack={handleBack}
+            currentStep={currentStep}
           />
         );
       case 5:
@@ -237,6 +253,8 @@ export function OnboardingForm() {
           <SkillsForm
             onNext={handleNext}
             initialData={{ skills: formData.skills }}
+            handleBack={handleBack}
+            currentStep={currentStep}
           />
         );
       default:
@@ -267,20 +285,6 @@ export function OnboardingForm() {
           {/* Form content */}
           <div className="mt-6">{renderStep()}</div>
         </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between gap-4">
-        {currentStep > 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleBack}
-            className="flex-1"
-          >
-            Back
-          </Button>
-        )}
       </div>
     </div>
   );

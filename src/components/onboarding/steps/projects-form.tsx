@@ -33,9 +33,11 @@ const projectSchema = z.object({
 type ProjectsFormProps = {
   onNext: (data: z.infer<typeof projectSchema>) => void
   initialData?: z.infer<typeof projectSchema>
+  handleBack: () => void
+  currentStep: number
 }
 
-export function ProjectsForm({ onNext, initialData }: ProjectsFormProps) {
+export function ProjectsForm({ onNext, initialData, handleBack, currentStep }: ProjectsFormProps) {
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
     defaultValues: initialData || {
@@ -261,8 +263,19 @@ export function ProjectsForm({ onNext, initialData }: ProjectsFormProps) {
           Add Another Project
         </Button>
 
-        <div className="flex justify-end mt-6">
-          <Button type="submit" variant="outline">Next</Button>
+        <div className="flex justify-between gap-4 mt-6">
+          {currentStep > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </Button>
+          )}
+          {currentStep === 0 && <div className="flex-1" /> } 
+          <Button type="submit" variant="outline" className="flex-1">Next</Button>
         </div>
       </form>
     </Form>

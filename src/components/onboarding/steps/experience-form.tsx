@@ -50,9 +50,16 @@ const employmentTypes = [
 type ExperienceFormProps = {
   onNext: (data: z.infer<typeof experienceSchema>) => void
   initialData?: z.infer<typeof experienceSchema>
+  handleBack: () => void
+  currentStep: number
 }
 
-export function ExperienceForm({ onNext, initialData }: ExperienceFormProps) {
+export function ExperienceForm({ 
+  onNext, 
+  initialData, 
+  handleBack,
+  currentStep
+}: ExperienceFormProps) {
   const form = useForm<z.infer<typeof experienceSchema>>({
     resolver: zodResolver(experienceSchema),
     defaultValues: initialData || {
@@ -327,8 +334,19 @@ export function ExperienceForm({ onNext, initialData }: ExperienceFormProps) {
           Add Another Experience
         </Button>
 
-        <div className="flex justify-end mt-6">
-          <Button type="submit" variant="outline">Next</Button>
+        <div className="flex justify-between gap-4 mt-6">
+          {currentStep > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </Button>
+          )}
+          {currentStep === 0 && <div className="flex-1" /> } 
+          <Button type="submit" variant="outline" className="flex-1">Next</Button>
         </div>
       </form>
     </Form>

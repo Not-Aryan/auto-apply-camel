@@ -33,9 +33,11 @@ const educationSchema = z.object({
 type EducationFormProps = {
   onNext: (data: z.infer<typeof educationSchema>) => void
   initialData?: z.infer<typeof educationSchema>
+  handleBack: () => void
+  currentStep: number
 }
 
-export function EducationForm({ onNext, initialData }: EducationFormProps) {
+export function EducationForm({ onNext, initialData, handleBack, currentStep }: EducationFormProps) {
   const form = useForm<z.infer<typeof educationSchema>>({
     resolver: zodResolver(educationSchema),
     defaultValues: initialData || {
@@ -280,8 +282,19 @@ export function EducationForm({ onNext, initialData }: EducationFormProps) {
           Add Another Education
         </Button>
 
-        <div className="flex justify-end mt-6">
-          <Button type="submit" variant="outline">Next</Button>
+        <div className="flex justify-between gap-4 mt-6">
+          {currentStep > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="flex-1"
+            >
+              Back
+            </Button>
+          )}
+          {currentStep === 0 && <div className="flex-1" /> } 
+          <Button type="submit" variant="outline" className="flex-1">Next</Button>
         </div>
       </form>
     </Form>
