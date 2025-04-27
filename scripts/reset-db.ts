@@ -17,11 +17,11 @@ async function resetDatabase() {
     console.log('Deleting education...')
     await prisma.education.deleteMany()
     
-    console.log('Deleting tasks...')
-    await prisma.task.deleteMany()
-    
-    console.log('Deleting companies...')
-    await prisma.company.deleteMany()
+    console.log('Deleting form data...')
+    await prisma.formData.deleteMany()
+
+    console.log('Deleting job applications...')
+    await prisma.jobApplication.deleteMany()
     
     console.log('Deleting profiles...')
     await prisma.profile.deleteMany()
