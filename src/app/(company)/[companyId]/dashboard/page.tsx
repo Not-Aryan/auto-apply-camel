@@ -83,11 +83,20 @@ const parseCsvData = (csvString: string): Candidate[] => {
 
     const getValue = (index: number) => values[index]?.trim() || '';
 
+    let resumeUrl = getValue(resumeIndex) || '';
+    // Transform Google Drive URL to embeddable format
+    if (resumeUrl.includes('drive.google.com/open?id=')) {
+      const fileId = resumeUrl.split('id=')[1];
+      if (fileId) {
+        resumeUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+      }
+    }
+
     return {
       id: `candidate-${index + 1}`,
       name: getValue(nameIndex) || `Unknown Name ${index + 1}`,
       email: getValue(emailIndex) || `unknown${index + 1}@example.com`,
-      resumeUrl: getValue(resumeIndex) || '',
+      resumeUrl: resumeUrl, // Use the potentially transformed URL
     };
   });
 
@@ -458,6 +467,7 @@ export default function CompanyDashboard() {
               <div className="flex-1 overflow-auto mb-4">
                  {selectedCandidateForDrawer.resumeUrl ? (
                     <iframe 
+                      key={selectedCandidateForDrawer.resumeUrl}
                       src={selectedCandidateForDrawer.resumeUrl} 
                       className="w-full h-full border-0"
                       title={`${selectedCandidateForDrawer.name}'s Resume`}
