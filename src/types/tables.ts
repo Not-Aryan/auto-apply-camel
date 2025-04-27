@@ -15,4 +15,5 @@ export interface Company {
     name: string;
     color: string;
   }>;
+  applicationStatus?: "Applied" | "Applying" | "Queued";
 }

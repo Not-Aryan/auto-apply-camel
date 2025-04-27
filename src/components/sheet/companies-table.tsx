@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import {
   ColumnDef,
@@ -116,12 +116,24 @@ const columns: ColumnDef<Company>[] = [
       const status = row.getValue("status") as string;
       const statusMap: Record<string, { label: string; color: string }> = {
         R: { label: "Rejected", color: "red" },
-        CF: { label: "Interviewing", color: "blue" },
-        S: { label: "Accepted", color: "green" },
-        RM: { label: "Applied", color: "gray" },
-        NA: { label: "Not Applied", color: "yellow" },
+        CF: { label: "Applying", color: "blue" },
+        S: { label: "Accepted", color: "gray" },
+        RM: { label: "Applied", color: "green" },
+        NA: { label: "Queued", color: "yellow" },
       };
       const statusInfo = statusMap[status] || { label: "Not Applied", color: "yellow" };
+
+      // Add loading animation for Interviewing status (CF)
+      if (status === "CF") {
+        return (
+          <div
+            className={`inline-flex px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 items-center space-x-1`}
+          >
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+            <span>{statusInfo.label}</span>
+          </div>
+        );
+      }
 
       return (
         <div
@@ -216,91 +228,45 @@ const columns: ColumnDef<Company>[] = [
       );
     },
   },
-  {
-    id: "auto-apply",
-    size: 100,
-    header: () => (
-      <div className="flex items-center space-x-2">
-        <Rocket className="h-4 w-4" />
-        <span>Auto Apply</span>
-      </div>
-    ),
-    cell: ({ row }) => {
-      const [isSubmitting, setIsSubmitting] = useState(false);
-      const { session } = useClerk();
-
-      const handleAutoApply = async () => {
-        setIsSubmitting(true);
-        try {
-          if (!session) {
-            toast.error("Please sign in to submit applications");
-            return;
-          }
-
-          const token = await session.getToken();
-          console.log('Auth token obtained:', token ? 'Yes' : 'No');
-          
-          const response = await fetch('/api/applications', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              jobUrl: row.original.jobUrl,
-              companyName: row.original.name,
-              jobTitle: row.original.jobTitle
-            })
-          });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error:', {
-              status: response.status,
-              statusText: response.statusText,
-              body: errorText
-            });
-            throw new Error(`API error: ${response.status} - ${errorText}`);
-          }
-
-          const result = await response.json();
-          
-          if (result.success) {
-            toast.success("Application submitted successfully!");
-          } else {
-            toast.error(result.message || "Failed to submit application");
-          }
-        } catch (error) {
-          toast.error("Error submitting application");
-          console.error('Auto Apply Error:', error);
-        } finally {
-          setIsSubmitting(false);
-        }
-      };
-
-      return (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleAutoApply}
-          disabled={isSubmitting}
-          className="w-[100px] bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
-        >
-          {isSubmitting ? (
-            <div className="flex items-center space-x-2">
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              <span>Applying</span>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Rocket className="h-3 w-3" />
-              <span>Apply</span>
-            </div>
-          )}
-        </Button>
-      );
-    }
-  },
+  // {
+  //   id: "auto-apply",
+  //   size: 100,
+  //   header: () => (
+  //     <div className="flex items-center space-x-2">
+  //       <Rocket className="h-4 w-4" />
+  //       <span>Auto Apply</span>
+  //     </div>
+  //   ),
+  //   cell: ({ row }) => {
+  //     // Get application status from row data
+  //     const status = row.original.applicationStatus || "Queued";
+      
+  //     if (status === "Applied") {
+  //       return (
+  //         <div className="text-green-600 font-medium flex items-center space-x-1">
+  //           <span>Applied</span>
+  //           <span>✅</span>
+  //         </div>
+  //       );
+  //     }
+      
+  //     if (status === "Applying") {
+  //       return (
+  //         <div className="text-blue-600 font-medium flex items-center space-x-2">
+  //           <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+  //           <span>Applying</span>
+  //         </div>
+  //       );
+  //     }
+      
+  //     // Default to Queued
+  //     return (
+  //       <div className="text-gray-500 font-medium">
+  //         Queued
+  //       </div>
+  //     );
+  //   }
+  // },
   {
     id: "actions",
     size: 40,
@@ -314,9 +280,171 @@ const columns: ColumnDef<Company>[] = [
 
 export function CompaniesTable({ data }: { data: Company[] }) {
   const [rowSelection, setRowSelection] = useState({});
+  const [applicationStates, setApplicationStates] = useState<Record<string, string>>({});
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationRef = useRef({
+    currentIndex: 0,
+    notAppliedIds: [] as string[],
+  });
+  
+  // Initialize states and start animation
+  useEffect(() => {
+    // Initial setup of states
+    const initialStates: Record<string, string> = {};
+    
+    // Find all companies that need animation (not already Applied)
+    const notAppliedIds = data
+      .filter(company => company.applicationStatus !== "Applied")
+      .map(company => company.id);
+    
+    // Set initial states based on data
+    data.forEach(company => {
+      if (company.applicationStatus === "Applied") {
+        initialStates[company.id] = "Applied";
+      } else {
+        initialStates[company.id] = "Not Applied";
+      }
+    });
+    
+    // Store ids for animation
+    animationRef.current = {
+      currentIndex: 0,
+      notAppliedIds
+    };
+    
+    // Set initial states
+    setApplicationStates(initialStates);
+    
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    // Start the animation process
+    startAnimation();
+    
+    // Cleanup on unmount
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [data]); // Only run when data changes
+  
+  // Function to start the animation sequence
+  const startAnimation = () => {
+    const { notAppliedIds } = animationRef.current;
+    
+    if (notAppliedIds.length === 0) return;
+    
+    // Set the first item to Applying immediately
+    if (notAppliedIds.length > 0) {
+      setApplicationStates(prev => ({
+        ...prev,
+        [notAppliedIds[0]]: "Applying"
+      }));
+    }
+    
+    // Set up interval for further updates
+    intervalRef.current = setInterval(() => {
+      console.log("Animation tick"); // Debug log
+      
+      animationRef.current.currentIndex = Math.min(
+        animationRef.current.currentIndex + 1, 
+        notAppliedIds.length
+      );
+      
+      const { currentIndex } = animationRef.current;
+      
+      // If we've processed all items, clear the interval
+      if (currentIndex >= notAppliedIds.length) {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        return;
+      }
+      
+      // Update states: current -> Applied, next -> Applying
+      setApplicationStates(prev => {
+        const newStates = { ...prev };
+        
+        // Current item (just processed) becomes Applied
+        const currentId = notAppliedIds[currentIndex - 1];
+        newStates[currentId] = "Applied";
+        
+        // Next item becomes Applying
+        const nextId = notAppliedIds[currentIndex];
+        if (nextId) {
+          newStates[nextId] = "Applying";
+        }
+        
+        console.log("New states:", newStates); // Debug log
+        return newStates;
+      });
+    }, 3000); // Reduced to 3 seconds for testing
+  };
+
+  // Status display logic
+  const getStatusForDisplay = (row: any) => {
+    const companyId = row.original.id;
+    const currentState = applicationStates[companyId] || "Not Applied";
+    
+    if (currentState === "Applied") {
+      return "RM"; // Display as Applied (green)
+    } else if (currentState === "Applying") {
+      return "CF"; // Display as Applying (blue) with animation
+    } else {
+      return "NA"; // Display as Not Applied (yellow)
+    }
+  };
+
+  // Update columns to use the new status function
+  const columnsWithAnimation = columns.map(col => {
+    if ('accessorKey' in col && col.accessorKey === "status") {
+      return {
+        ...col,
+        cell: ({ row }: { row: any }) => {
+          const status = getStatusForDisplay(row);
+          const statusMap: Record<string, { label: string; color: string }> = {
+            R: { label: "Rejected", color: "red" },
+            CF: { label: "Applying", color: "blue" },
+            S: { label: "Accepted", color: "gray" },
+            RM: { label: "Applied", color: "green" },
+            NA: { label: "Not Applied", color: "yellow" },
+          };
+          const statusInfo = statusMap[status] || { label: "Not Applied", color: "yellow" };
+
+          // Add loading animation for Applying status (CF)
+          if (status === "CF") {
+            return (
+              <div
+                className={`inline-flex px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 items-center space-x-1`}
+              >
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                <span>{statusInfo.label}</span>
+              </div>
+            );
+          }
+
+          return (
+            <div
+              className={`inline-flex px-2 py-1 rounded-md text-xs font-medium bg-${statusInfo.color}-100 text-${statusInfo.color}-800`}
+            >
+              {statusInfo.label}
+            </div>
+          );
+        }
+      };
+    }
+    return col;
+  });
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columnsWithAnimation,
     getCoreRowModel: getCoreRowModel(),
     onRowSelectionChange: setRowSelection,
     state: {
