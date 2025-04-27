@@ -13,13 +13,19 @@ import {
   InfoIcon,
   ArrowDownUpIcon,
   ListFilterIcon,
-  CheckIcon
+  CheckIcon,
+  XIcon
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { EvaluationDialog } from "@/components/company/evaluation-dialog";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 // Define candidate type
 interface Candidate {
@@ -27,6 +33,7 @@ interface Candidate {
   name: string;
   email: string;
   status: string;
+  resumeUrl: string;
 }
 
 // Raw CSV data (replace with actual data loading if needed)
@@ -62,23 +69,28 @@ const parseCsvData = (csvString: string): Candidate[] => {
   const headers = lines[0].split(',').map(h => h.trim());
   const emailIndex = headers.indexOf('Email?');
   const nameIndex = headers.indexOf('Name');
+  const resumeIndex = headers.indexOf('Resume');
 
-  if (emailIndex === -1 || nameIndex === -1) {
-    console.error("CSV must contain 'Email?' and 'Name' columns");
+  if (emailIndex === -1 || nameIndex === -1 || resumeIndex === -1) {
+    console.error("CSV must contain 'Email?', 'Name', and 'Resume' columns");
     return [];
   }
 
-  const candidates: Omit<Candidate, 'status'>[] = lines.slice(1).map((line, index) => {
-    // Basic CSV parsing, handles commas within quoted fields imperfectly
-    const values = line.split(','); 
+  type ParsedCandidate = Omit<Candidate, 'status'>;
+
+  const candidates: ParsedCandidate[] = lines.slice(1).map((line, index) => {
+    const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) || line.split(',');
+
+    const getValue = (index: number) => values[index]?.trim() || '';
+
     return {
-      id: `candidate-${index + 1}`, // Simple ID generation
-      name: values[nameIndex]?.trim() || `Unknown Name ${index + 1}`,
-      email: values[emailIndex]?.trim() || `unknown${index + 1}@example.com`,
+      id: `candidate-${index + 1}`,
+      name: getValue(nameIndex) || `Unknown Name ${index + 1}`,
+      email: getValue(emailIndex) || `unknown${index + 1}@example.com`,
+      resumeUrl: getValue(resumeIndex) || '',
     };
   });
 
-  // Assign statuses: 5 Review, 2 Interview, rest Lead
   const totalParsed = candidates.length;
   const reviewCount = 5;
   const interviewCount = 2;
@@ -96,15 +108,13 @@ const parseCsvData = (csvString: string): Candidate[] => {
 
 const mockCandidates: Candidate[] = parseCsvData(csvData);
 
-// Updated mock stats based on parsed data
 const mockStats = {
   leads: mockCandidates.filter((c: Candidate) => c.status === 'Lead').length,
   reviewApplication: mockCandidates.filter((c: Candidate) => c.status === 'Review').length,
   interviews: mockCandidates.filter((c: Candidate) => c.status === 'Interview').length,
-  hired: 0 // Assuming 0 hired as per requirement
+  hired: 0
 };
 
-// Status colors mapping
 const statusColors: Record<string, string> = {
   Lead: "bg-blue-50 text-blue-600 ring-blue-600/20",
   Review: "bg-yellow-50 text-yellow-600 ring-yellow-600/20",
@@ -119,7 +129,8 @@ export default function CompanyDashboard() {
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Number of candidates per page
+  const [selectedCandidateForDrawer, setSelectedCandidateForDrawer] = useState<Candidate | null>(null);
+  const itemsPerPage = 10;
 
   const toggleSelectCandidate = (id: string) => {
     setSelectedCandidates(prev => ({
@@ -128,13 +139,11 @@ export default function CompanyDashboard() {
     }));
   };
 
-  // Filter candidates based on search query
   const filteredCandidates = mockCandidates.filter((candidate: Candidate) =>
     candidate.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate pagination
   const totalCandidates = filteredCandidates.length;
   const totalPages = Math.ceil(totalCandidates / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -152,293 +161,319 @@ export default function CompanyDashboard() {
   };
 
   return (
-    <Dialog>
-      <section className="mx-auto w-full px-5 pb-20 sm:px-10 mt-10 max-w-screen sm:max-w-5xl">
-        <div className="relative flow-root w-full pb-10">
-          <div className="inline-block w-full align-middle">
-            {/* Header with job info */}
-            <div className="mb-[40px] mt-5 flex w-full flex-wrap items-center gap-5">
-              <div className="flex-1">
-                <div className="flex flex-1 items-center gap-2 text-base font-semibold leading-6 text-gray-900">
-                  <Link href="/listings" className="hidden sm:flex">Listings</Link>
-                  <ChevronRightIcon className="hidden h-4 w-4 text-gray-600 sm:flex" />
-                  <div className="flex items-center gap-3">
-                    <span className="whitespace-nowrap">Othello SWE 2025 Summer Internship</span>
-                    <p className="text-xs px-2 py-1 w-fit whitespace-nowrap text-center rounded-xl font-medium bg-green-100/50 text-green-500" data-testid="job-status-badge">
-                      Active
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-2 hidden text-sm text-gray-700 md:flex">
-                  Manage candidates and applications for this listing
-                </p>
-              </div>
-              
-              {/* Action buttons */}
-              <div className="flex flex-row-reverse items-center gap-2 md:flex-row">
-                <DialogTrigger asChild>
-                  <Button variant="ghost" className="rounded-xl px-3 py-2 text-sm font-semibold">
-                    <div className="flex items-center gap-1">
-                      <p className="text-sm">Edit job</p>
+    <ResizablePanelGroup direction="horizontal" className="min-h-screen">
+      <ResizablePanel defaultSize={selectedCandidateForDrawer ? 70 : 100}>
+        <section className="mx-auto w-full px-5 pb-20 sm:px-10 mt-10 max-w-screen sm:max-w-5xl">
+          <div className="relative flow-root w-full pb-10">
+            <div className="inline-block w-full align-middle">
+              <div className="mb-[40px] mt-5 flex w-full flex-wrap items-center gap-5">
+                <div className="flex-1">
+                  <div className="flex flex-1 items-center gap-2 text-base font-semibold leading-6 text-gray-900">
+                    <Link href="/listings" className="hidden sm:flex">Listings</Link>
+                    <ChevronRightIcon className="hidden h-4 w-4 text-gray-600 sm:flex" />
+                    <div className="flex items-center gap-3">
+                      <span className="whitespace-nowrap">Othello SWE 2025 Summer Internship</span>
+                      <p className="text-xs px-2 py-1 w-fit whitespace-nowrap text-center rounded-xl font-medium bg-green-100/50 text-green-500" data-testid="job-status-badge">
+                        Active
+                      </p>
                     </div>
+                  </div>
+                  <p className="mt-2 hidden text-sm text-gray-700 md:flex">
+                    Manage candidates and applications for this listing
+                  </p>
+                </div>
+                
+                <div className="flex flex-row-reverse items-center gap-2 md:flex-row">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" className="rounded-xl px-3 py-2 text-sm font-semibold">
+                        <div className="flex items-center gap-1">
+                          <p className="text-sm">Edit job</p>
+                        </div>
+                      </Button>
+                    </DialogTrigger>
+                    <EvaluationDialog /> 
+                  </Dialog>
+                  <Button className="rounded-xl px-3 py-2 text-sm font-semibold">
+                    <section className="group relative">
+                      <div className="flex items-center gap-2">
+                        <ShareIcon className="h-4 w-4" />
+                        <p className="text-sm">Share job</p>
+                      </div>
+                    </section>
                   </Button>
-                </DialogTrigger>
-                <Button className="rounded-xl px-3 py-2 text-sm font-semibold">
-                  <section className="group relative">
-                    <div className="flex items-center gap-2">
-                      <ShareIcon className="h-4 w-4" />
-                      <p className="text-sm">Share job</p>
-                    </div>
-                  </section>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Stats cards */}
-            <div className="max-md:mt-6">
-              <div className="mx-auto flex max-w-7xl flex-col">
-                <div className="flex flex-1 flex-row items-center justify-evenly divide-x overflow-x-auto rounded-xl border border-gray-200">
-                  {/* Leads */}
-                  <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
-                    <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
-                      <div className="flex w-full flex-row items-center">
-                        <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
-                          Leads
-                        </div>
-                        <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
-                      </div>
-                      <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
-                        {mockStats.leads}
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {/* Review Application */}
-                  <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
-                    <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
-                      <div className="flex w-full flex-row items-center">
-                        <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
-                          Review Application
-                        </div>
-                        <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
-                      </div>
-                      <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
-                        {mockStats.reviewApplication}
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {/* Interviews - Updated */}
-                  <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
-                    <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
-                      <div className="flex w-full flex-row items-center">
-                        <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
-                          Interviews
-                        </div>
-                        <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
-                      </div>
-                      <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
-                        {mockStats.interviews}
-                      </div>
-                    </div>
-                  </button>
-                  
-                  {/* Hired - Updated */}
-                  <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
-                    <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
-                      <div className="flex w-full flex-row items-center">
-                        <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
-                          Hired
-                        </div>
-                        <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
-                      </div>
-                      <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
-                        {mockStats.hired}
-                      </div>
-                    </div>
-                  </button>
                 </div>
-              </div>
-            </div>
-            
-            {/* Search bar */}
-            <div className="mb-2 mt-5">
-              <header className="z-10 w-full bg-white transition-all duration-200">
-                <div className="relative">
-                  <div className="mb-2 mt-6">
-                    <div className="flex gap-2 flex-1 items-center cursor-text rounded-xl border w-full lg:max-w-5xl px-4 border-gray-200">
-                      <label htmlFor="semantic-input" className="flex h-full cursor-text gap-1 rounded-s-full flex-1">
-                        <div className="flex flex-1 flex-row items-center gap-3 justify-center whitespace-nowrap outline-none">
-                          <button className="flex flex-none items-center gap-2 overflow-hidden text-sm rounded-lg transition-all duration-200 text-gray-500">
-                            <SearchIcon className="h-4 w-4 flex-none" />
-                          </button>
-                          <input 
-                            id="semantic-input" 
-                            autoComplete="off" 
-                            placeholder="Search by name or email" 
-                            className="w-full border-0 bg-transparent py-4 px-0 text-gray-900 outline-none ring-0 placeholder:text-gray-400 focus:outline-none text-sm"
-                            value={searchQuery}
-                            onChange={(e) => {
-                              setSearchQuery(e.target.value);
-                              setCurrentPage(1); // Reset to first page on search
-                            }}
-                          />
-                        </div>
-                      </label>
-                      
-                      {/* Search type selector */}
-                      <div className="relative inline-block text-left h-fit z-20 group">
-                        <div className="flex items-center rounded-md text-sm py-1 px-2 font-medium transition-colors focus:outline-none text-gray-900 hover:bg-gray-50 hover:text-gray-900">
-                          Keyword
-                          <ChevronDownIcon className="h-4 w-4 ml-2" />
-                        </div>
-                        <div className="absolute right-0 top-[75%] mt-2 w-96 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 transition-all duration-200 ease-out transform opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible">
-                          <div className="p-1">
-                            <button className="flex text-left w-full gap-3 rounded-sm px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 data-[focus]:bg-gray-100 data-[focus]:text-gray-900 data-[focus]:outline-none">
-                              <CheckIcon className="h-4 w-4 text-gray-900 flex-shrink-0 stroke-2 mt-0.5" />
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold">Keyword</p>
-                                <p className="text-gray-500">Search by name or email</p>
-                              </div>
-                            </button>
-                            <button className="flex text-left w-full gap-3 rounded-sm px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 data-[focus]:bg-gray-100 data-[focus]:text-gray-900 data-[focus]:outline-none">
-                              <div className="h-4 w-4 flex-shrink-0"></div>
-                              <div className="flex-1">
-                                <p className="text-sm font-semibold">Intelligent</p>
-                                <p className="text-gray-500">Search and sort by anything!</p>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </header>
-            </div>
-            
-            {/* Candidates table */}
-            <section className="w-full border-separate border-spacing-y-5">
-              <div className="sticky top-0 z-10 bg-white">
-                <section className="mb-2 h-10 pt-2"></section>
-                <section className="relative flex items-end border-b">
-                  <div className="absolute left-0 top-4 flex h-[32px] flex-col items-center gap-3.5">
-                    <div className="relative px-7 sm:w-12 sm:px-6 group">
-                      <input type="checkbox" className="absolute left-4 top-0 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
-                      {/* TODO: Implement select all/multiple functionality */}
-                      <div className="absolute left-4 top-4 bg-white w-fit group-hover:block hidden pt-2">
-                        <ul role="menu" aria-orientation="vertical" aria-labelledby="options-menu" className="p-1 border border-gray-200 rounded-md shadow-sm min-w-40">
-                          {/* Options for selection */}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                  <section className="w-full">
-                    <div className="flex h-12 max-w-6xl flex-1">
-                      <div className="ml-10 mr-2 flex max-w-6xl flex-1 items-center gap-2 overflow-visible">
-                        <div className="relative inline-block">
-                          <Button variant="ghost" className="rounded-md px-1.5 py-1">
-                            <ArrowDownUpIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="relative -ml-1 inline-block">
-                          <Button variant="ghost" className="rounded-md px-1.5 py-1">
-                            <ListFilterIcon className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {/* Pagination Controls */}
-                      <div className="relative ml-auto mt-1 pr-4 before:absolute before:-left-10 before:top-0 before:h-full before:w-10 before:bg-gradient-to-l before:from-white before:to-transparent before:content-['']">
-                        <nav aria-label="Pagination" className="relative flex items-center justify-between border-gray-200 bg-white py-3 false">
-                          <div className="hidden sm:block whitespace-nowrap">
-                            <p className="text-sm text-gray-700 mr-5 -mt-1">
-                              <span className="font-medium">{startIndex + 1}-{Math.min(endIndex, totalCandidates)}</span> of <span className="font-medium">{totalCandidates}</span>
-                            </p>
-                          </div>
-                          <div className="flex flex-1 justify-between sm:justify-end -mt-1">
-                            <button 
-                              onClick={() => handlePageChange(currentPage - 1)} 
-                              disabled={currentPage === 1}
-                              className="relative inline-flex items-center rounded-md bg-white text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:ring-gray-200 disabled:text-gray-500 disabled:hover:bg-white px-2 py-0.5"
-                            >
-                              Previous
-                            </button>
-                            <button 
-                              onClick={() => handlePageChange(currentPage + 1)}
-                              disabled={currentPage === totalPages || totalCandidates === 0}
-                              className="relative ml-3 inline-flex items-center rounded-md bg-white text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:ring-gray-200 disabled:text-gray-500 disabled:hover:bg-white px-2 py-0.5"
-                            >
-                              Next
-                            </button>
-                          </div>
-                        </nav>
-                      </div>
-                    </div>
-                  </section>
-                </section>
               </div>
               
-              {/* Candidates list */}
-              <div className="flex max-w-6xl flex-col overflow-x-auto">
-                <table className="min-w-full table-fixed divide-y divide-gray-300">
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {currentCandidates.length > 0 ? (
-                      currentCandidates.map((candidate) => (
-                        <tr key={candidate.id} className="border-b-none group w-full cursor-pointer transition-all duration-300 hover:bg-gray-50">
-                          <td className="relative w-12 px-7 sm:px-6">
-                            <Checkbox 
-                              className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                              checked={!!selectedCandidates[candidate.id]}
-                              onCheckedChange={() => toggleSelectCandidate(candidate.id)}
+              <div className="max-md:mt-6">
+                <div className="mx-auto flex max-w-7xl flex-col">
+                  <div className="flex flex-1 flex-row items-center justify-evenly divide-x overflow-x-auto rounded-xl border border-gray-200">
+                    <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
+                      <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
+                        <div className="flex w-full flex-row items-center">
+                          <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
+                            Leads
+                          </div>
+                          <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
+                        </div>
+                        <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
+                          {mockStats.leads}
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
+                      <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
+                        <div className="flex w-full flex-row items-center">
+                          <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
+                            Review Application
+                          </div>
+                          <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
+                        </div>
+                        <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
+                          {mockStats.reviewApplication}
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
+                      <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
+                        <div className="flex w-full flex-row items-center">
+                          <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
+                            Interviews
+                          </div>
+                          <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
+                        </div>
+                        <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
+                          {mockStats.interviews}
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button className="relative w-full min-w-[200px] flex-1 cursor-pointer overflow-hidden duration-300 first:rounded-l-lg last:rounded-r-lg hover:bg-gray-50">
+                      <div className="flex flex-1 flex-col items-start p-4 pb-3 pt-3">
+                        <div className="flex w-full flex-row items-center">
+                          <div className="truncate pr-1 text-sm/6 font-medium text-gray-500">
+                            Hired
+                          </div>
+                          <InfoIcon className="h-3.5 w-3.5 flex-none rounded-full text-gray-600 duration-300 hover:bg-white hover:shadow-md" />
+                        </div>
+                        <div className="text-3xl/10 font-semibold tracking-tight text-gray-900">
+                          {mockStats.hired}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-2 mt-5">
+                <header className="z-10 w-full bg-white transition-all duration-200">
+                  <div className="relative">
+                    <div className="mb-2 mt-6">
+                      <div className="flex gap-2 flex-1 items-center cursor-text rounded-xl border w-full lg:max-w-5xl px-4 border-gray-200">
+                        <label htmlFor="semantic-input" className="flex h-full cursor-text gap-1 rounded-s-full flex-1">
+                          <div className="flex flex-1 flex-row items-center gap-3 justify-center whitespace-nowrap outline-none">
+                            <button className="flex flex-none items-center gap-2 overflow-hidden text-sm rounded-lg transition-all duration-200 text-gray-500">
+                              <SearchIcon className="h-4 w-4 flex-none" />
+                            </button>
+                            <input 
+                              id="semantic-input" 
+                              autoComplete="off" 
+                              placeholder="Search by name or email" 
+                              className="w-full border-0 bg-transparent py-4 px-0 text-gray-900 outline-none ring-0 placeholder:text-gray-400 focus:outline-none text-sm"
+                              value={searchQuery}
+                              onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                              }}
                             />
-                          </td>
-                          <td className="min-w-[110px] py-2 pr-3 text-sm font-medium text-gray-900 max-w-[110px] sm:max-w-[180px]">
-                            <div className="overflow-hidden truncate text-ellipsis">{candidate.name}</div>
-                          </td>
-                          <td className="hidden h-full px-3 py-3 text-sm text-gray-500 md:flex max-w-[350px] max-[800px]:max-w-[350px] lg:max-w-[300px]">
-                            <div className="w-full overflow-hidden text-ellipsis whitespace-nowrap">{candidate.email}</div>
-                          </td>
-                          <td className="relative max-w-[75px] whitespace-nowrap px-3 py-2 text-sm text-gray-500 md:max-w-[140px]">
-                            <div className={`text-xs px-2 py-1 w-fit whitespace-nowrap text-center rounded-xl font-medium ${getStatusChipClass(candidate.status)}`}>
-                              {candidate.status}
+                          </div>
+                        </label>
+                        
+                        <div className="relative inline-block text-left h-fit z-20 group">
+                          <div className="flex items-center rounded-md text-sm py-1 px-2 font-medium transition-colors focus:outline-none text-gray-900 hover:bg-gray-50 hover:text-gray-900">
+                            Keyword
+                            <ChevronDownIcon className="h-4 w-4 ml-2" />
+                          </div>
+                          <div className="absolute right-0 top-[75%] mt-2 w-96 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 transition-all duration-200 ease-out transform opacity-0 scale-95 invisible group-hover:opacity-100 group-hover:scale-100 group-hover:visible">
+                            <div className="p-1">
+                              <button className="flex text-left w-full gap-3 rounded-sm px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 data-[focus]:bg-gray-100 data-[focus]:text-gray-900 data-[focus]:outline-none">
+                                <CheckIcon className="h-4 w-4 text-gray-900 flex-shrink-0 stroke-2 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-sm font-semibold">Keyword</p>
+                                  <p className="text-gray-500">Search by name or email</p>
+                                </div>
+                              </button>
+                              <button className="flex text-left w-full gap-3 rounded-sm px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 data-[focus]:bg-gray-100 data-[focus]:text-gray-900 data-[focus]:outline-none">
+                                <div className="h-4 w-4 flex-shrink-0"></div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-semibold">Intelligent</p>
+                                  <p className="text-gray-500">Search and sort by anything!</p>
+                                </div>
+                              </button>
                             </div>
-                          </td>
-                          <td className="hidden whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-3 lg:flex w-full">
-                            <div className="flex justify-end rounded-e-md ml-auto w-[157px]">
-                              <div className="relative flex overflow-hidden text-indigo-600 whitespace-nowrap px-3 py-1 text-left text-sm font-semibold shadow-none outline-none ring-0 transition-all duration-300 focus:border-none focus:outline-none disabled:border disabled:border-indigo-600 disabled:bg-transparent disabled:text-transparent group-hover:w-[160px] w-[135px]">
-                                View application&nbsp;&nbsp;<span className="ml-1 transition-all group-hover:ml-0"> →</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </header>
+              </div>
+              
+              <section className="w-full border-separate border-spacing-y-5">
+                <div className="sticky top-0 z-10 bg-white">
+                  <section className="mb-2 h-10 pt-2"></section>
+                  <section className="relative flex items-end border-b">
+                    <div className="absolute left-0 top-4 flex h-[32px] flex-col items-center gap-3.5">
+                      <div className="relative px-7 sm:w-12 sm:px-6 group">
+                        <input type="checkbox" className="absolute left-4 top-0 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+                        <div className="absolute left-4 top-4 bg-white w-fit group-hover:block hidden pt-2">
+                          <ul role="menu" aria-orientation="vertical" aria-labelledby="options-menu" className="p-1 border border-gray-200 rounded-md shadow-sm min-w-40">
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    <section className="w-full">
+                      <div className="flex h-12 max-w-6xl flex-1">
+                        <div className="ml-10 mr-2 flex max-w-6xl flex-1 items-center gap-2 overflow-visible">
+                          <div className="relative inline-block">
+                            <Button variant="ghost" className="rounded-md px-1.5 py-1">
+                              <ArrowDownUpIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="relative -ml-1 inline-block">
+                            <Button variant="ghost" className="rounded-md px-1.5 py-1">
+                              <ListFilterIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="relative ml-auto mt-1 pr-4 before:absolute before:-left-10 before:top-0 before:h-full before:w-10 before:bg-gradient-to-l before:from-white before:to-transparent before:content-['']">
+                          <nav aria-label="Pagination" className="relative flex items-center justify-between border-gray-200 bg-white py-3 false">
+                            <div className="hidden sm:block whitespace-nowrap">
+                              <p className="text-sm text-gray-700 mr-5 -mt-1">
+                                <span className="font-medium">{startIndex + 1}-{Math.min(endIndex, totalCandidates)}</span> of <span className="font-medium">{totalCandidates}</span>
+                              </p>
+                            </div>
+                            <div className="flex flex-1 justify-between sm:justify-end -mt-1">
+                              <button 
+                                onClick={() => handlePageChange(currentPage - 1)} 
+                                disabled={currentPage === 1}
+                                className="relative inline-flex items-center rounded-md bg-white text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:ring-gray-200 disabled:text-gray-500 disabled:hover:bg-white px-2 py-0.5"
+                              >
+                                Previous
+                              </button>
+                              <button 
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages || totalCandidates === 0}
+                                className="relative ml-3 inline-flex items-center rounded-md bg-white text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0 disabled:ring-gray-200 disabled:text-gray-500 disabled:hover:bg-white px-2 py-0.5"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </nav>
+                        </div>
+                      </div>
+                    </section>
+                  </section>
+                </div>
+                
+                <div className="flex max-w-6xl flex-col overflow-x-auto">
+                  <table className="min-w-full table-fixed divide-y divide-gray-300">
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {currentCandidates.length > 0 ? (
+                        currentCandidates.map((candidate) => (
+                          <tr 
+                            key={candidate.id} 
+                            className="border-b-none group w-full cursor-pointer transition-all duration-300 hover:bg-gray-50"
+                            onClick={() => setSelectedCandidateForDrawer(candidate)}
+                          >
+                            <td className="relative w-12 px-7 sm:px-6">
+                              <div onClick={(e) => e.stopPropagation()}> 
+                                <Checkbox 
+                                  className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                  checked={!!selectedCandidates[candidate.id]}
+                                  onCheckedChange={() => {
+                                    toggleSelectCandidate(candidate.id);
+                                  }}
+                                />
                               </div>
-                            </div>
+                            </td>
+                            <td className="min-w-[110px] py-2 pr-3 text-sm font-medium text-gray-900 max-w-[110px] sm:max-w-[180px]">
+                              <div className="overflow-hidden truncate text-ellipsis">{candidate.name}</div>
+                            </td>
+                            <td className="hidden h-full px-3 py-3 text-sm text-gray-500 md:flex max-w-[350px] max-[800px]:max-w-[350px] lg:max-w-[300px]">
+                              <div className="w-full overflow-hidden text-ellipsis whitespace-nowrap">{candidate.email}</div>
+                            </td>
+                            <td className="relative max-w-[75px] whitespace-nowrap px-3 py-2 text-sm text-gray-500 md:max-w-[140px]">
+                              <div className={`text-xs px-2 py-1 w-fit whitespace-nowrap text-center rounded-xl font-medium ${getStatusChipClass(candidate.status)}`}>
+                                {candidate.status}
+                              </div>
+                            </td>
+                            <td className="hidden whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-3 lg:flex w-full">
+                              <div className="flex justify-end rounded-e-md ml-auto w-fit"> 
+                                <div className="relative flex items-center overflow-hidden text-indigo-600 whitespace-nowrap px-3 py-1 text-left text-sm font-semibold outline-none ring-0 transition-all duration-300 group-hover:text-indigo-700">
+                                  View application&nbsp;&nbsp;<span className="ml-1 transition-all"> →</span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="text-center py-10 text-gray-500">
+                            No candidates found.
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="text-center py-10 text-gray-500">
-                          No candidates found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
           </div>
-        </div>
-        
-        {/* Floating action button */}
-        <section>
-          <button className="group fixed bottom-5 z-20 right-5 flex items-center rounded-xl bg-indigo-600 py-3 pr-4 shadow transition-all duration-300 hover:bg-indigo-500 active:scale-95 active:shadow-md active:shadow-indigo-400" aria-label="Add new candidates to your listing">
-            <p className="mr-4 w-0 overflow-hidden whitespace-nowrap text-right font-medium text-white transition-all duration-300 group-hover:w-36">
-              Add candidates
-            </p>
-            <PlusIcon className="h-5 w-5 text-white" strokeWidth={2} />
-          </button>
         </section>
+      </ResizablePanel>
+      
+      {selectedCandidateForDrawer && (
+        <>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+            <div className="flex flex-col h-full p-4">
+              <div className="flex justify-between items-center pb-4 border-b mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold">{selectedCandidateForDrawer.name}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedCandidateForDrawer.email} - {selectedCandidateForDrawer.status}</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-full"
+                  onClick={() => setSelectedCandidateForDrawer(null)}
+                >
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="flex-1 overflow-auto mb-4">
+                 {selectedCandidateForDrawer.resumeUrl ? (
+                    <iframe 
+                      src={selectedCandidateForDrawer.resumeUrl} 
+                      className="w-full h-full border-0"
+                      title={`${selectedCandidateForDrawer.name}'s Resume`}
+                    />
+                 ) : (
+                   <p className="text-gray-500 text-center mt-10">No resume URL provided.</p>
+                 )}
+              </div>
 
-        {/* Include the Dialog Content (EvaluationDialog) */}
-        <EvaluationDialog />
-      </section>
-    </Dialog>
+              <div className="mt-auto border-t pt-4">
+                <Button variant="outline" onClick={() => setSelectedCandidateForDrawer(null)}>Close</Button>
+              </div>
+            </div>
+          </ResizablePanel>
+        </>
+      )}
+    </ResizablePanelGroup>
   );
 }
