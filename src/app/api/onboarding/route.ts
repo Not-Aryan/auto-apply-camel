@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth, clerkClient, EmailAddress } from '@clerk/nextjs/server';
+import { mockData } from '@/constants/mock-data';
 
 export async function POST(request: Request) {
   try {
@@ -239,6 +240,33 @@ export async function POST(request: Request) {
     } catch (clerkError) {
       console.error(`Failed to update Clerk metadata for user ${userId}:`, clerkError);
       // Log the error but proceed
+    }
+
+    // After successful profile creation, create job applications for mock companies
+    try {
+      for (const company of mockData) {
+        await prisma.jobApplication.create({
+          data: {
+            userId: userId,
+            companyName: company.name,
+            jobTitle: company.jobTitle,
+            jobUrl: company.jobUrl,
+            status: company.status,
+            interview: company.interview,
+            lastUpdate: new Date(),
+            tasks: {
+              create: company.tasks.map(task => ({
+                name: task.name,
+                color: task.color
+              }))
+            }
+          }
+        });
+      }
+      console.log(`Created job applications for user ${userId}`);
+    } catch (error) {
+      console.error(`Failed to create job applications for user ${userId}:`, error);
+      // Don't fail the entire onboarding process if job application creation fails
     }
 
     // Return success response

@@ -19,6 +19,133 @@ export type Company = {
   }[];
 };
 
+export type MockUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profile: {
+    phoneNumber: string;
+    address: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+    linkedinUrl: string;
+    githubUrl: string;
+    portfolioUrl: string;
+    resumeUrl: string;
+    education: {
+      university: string;
+      degree: string;
+      field: string;
+      gpa: number;
+      startDate: string;
+      endDate: string;
+      isCurrently: boolean;
+      location: string;
+    }[];
+    experiences: {
+      company: string;
+      position: string;
+      type: string;
+      startDate: string;
+      endDate: string;
+      location: string;
+      isCurrently: boolean;
+      description: string;
+      achievements: string;
+      technologies: string[];
+    }[];
+    projects: {
+      name: string;
+      description: string;
+      url: string;
+      githubUrl: string;
+      technologies: string[];
+      startDate: string;
+      endDate: string;
+      isOngoing: boolean;
+    }[];
+    skills: {
+      name: string;
+      proficiency: string;
+      category: string;
+    }[];
+  };
+};
+
+export const mockUsers: MockUser[] = [
+  {
+    id: "user_2Qe1qXe1qXe1qXe1qXe1qXe1qXe1",
+    email: "john.doe@example.com",
+    firstName: "John",
+    lastName: "Doe",
+    profile: {
+      phoneNumber: "555-123-4567",
+      address: "123 Main St",
+      city: "San Francisco",
+      state: "CA",
+      country: "USA",
+      zipCode: "94105",
+      linkedinUrl: "https://linkedin.com/in/johndoe",
+      githubUrl: "https://github.com/johndoe",
+      portfolioUrl: "https://johndoe.com",
+      resumeUrl: "https://storage.example.com/resumes/john-doe.pdf",
+      education: [
+        {
+          university: "Stanford University",
+          degree: "Bachelor of Science",
+          field: "Computer Science",
+          gpa: 3.8,
+          startDate: "2018-09-01",
+          endDate: "2022-06-01",
+          isCurrently: false,
+          location: "Stanford, CA"
+        }
+      ],
+      experiences: [
+        {
+          company: "Tech Corp",
+          position: "Software Engineer",
+          type: "Full-time",
+          startDate: "2022-07-01",
+          endDate: "2023-12-31",
+          location: "San Francisco, CA",
+          isCurrently: false,
+          description: "Worked on developing scalable web applications",
+          achievements: "Led a team of 5 developers on a major feature release",
+          technologies: ["React", "Node.js", "TypeScript", "AWS"]
+        }
+      ],
+      projects: [
+        {
+          name: "E-commerce Platform",
+          description: "A full-stack e-commerce platform with real-time inventory management",
+          url: "https://ecommerce.johndoe.com",
+          githubUrl: "https://github.com/johndoe/ecommerce",
+          technologies: ["React", "Node.js", "MongoDB"],
+          startDate: "2021-01-01",
+          endDate: "2021-06-01",
+          isOngoing: false
+        }
+      ],
+      skills: [
+        {
+          name: "JavaScript",
+          proficiency: "Expert",
+          category: "Programming Language"
+        },
+        {
+          name: "React",
+          proficiency: "Advanced",
+          category: "Framework"
+        }
+      ]
+    }
+  }
+];
+
 export const mockData: Company[] = [
   {
     id: "1",
