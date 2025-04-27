@@ -73,7 +73,7 @@ export function ChatMessage({ message, onViewAttachment, onToolClick }: ChatMess
                             {segment.text}
                           </div>;
                     } else if (segment.type === 'tool-call') {
-                      return <InlineToolDisplay key={index} tool={segment} className="mr-1" />; 
+                      return <InlineToolDisplay key={index} tool={segment} className="mr-1" index={index} />; 
                     }
                     return null;
                   })}

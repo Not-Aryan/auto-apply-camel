@@ -11,52 +11,91 @@ export interface ToolCallSegment {
   query?: string; // For tags like <web-search>query</web-search>
   url?: string; // For tags like <browser-navigate-to url="..." />
   raw: string; // The original tag string
+  // isComplete: boolean; // No longer needed
 }
 
 export type MessageSegment = TextSegment | ToolCallSegment;
 
-// Regex to find <web-search>content</web-search> or <browser-navigate-to url="..."/> tags
-// Need to escape slashes properly within the JS regex literal
-const toolTagRegex = /<web-search>([^<]+)<\/web-search>|<browser-navigate-to\s+url="([^"]+)"\s*\/>/g;
+// Regex to find the *start* of a potential tool tag and capture its name and attributes
+// Group 1: Tool name (web-search, browser-navigate-to)
+// Group 2: Attributes string (e.g., ' url="..."') or empty/undefined
+const openingTagRegex = /<(web-search|browser-navigate-to)(\s+[^>]*)?>/g;
 
 export function parseMessageContent(content: string): MessageSegment[] {
   const segments: MessageSegment[] = [];
   let lastIndex = 0;
   let match;
 
-  // Ensure regex state is reset for each call if it was global
-  toolTagRegex.lastIndex = 0; 
+  openingTagRegex.lastIndex = 0; // Reset regex state
 
-  while ((match = toolTagRegex.exec(content)) !== null) {
+  while ((match = openingTagRegex.exec(content)) !== null) {
     const matchIndex = match.index;
-    const fullMatch = match[0];
+    const openingTag = match[0];
+    const toolName = match[1] as 'web-search' | 'browser-navigate-to';
+    const attributes = match[2] || ''; // Attributes string (e.g., ' url="..."')
+    const currentSegmentStartIndex = matchIndex;
+    const potentialSegmentEndIndex = matchIndex + openingTag.length;
 
-    // Add preceding text segment if any
+    // Check for completeness locally
+    let isTagComplete = false;
+    let completeSegmentEndIndex = -1;
+    let query: string | undefined = undefined;
+    let url: string | undefined = undefined;
+    let rawSegmentContent = '';
+
+    if (toolName === 'web-search') {
+      const closingTag = `</${toolName}>`;
+      const closingTagIndex = content.indexOf(closingTag, potentialSegmentEndIndex);
+      if (closingTagIndex !== -1) {
+        isTagComplete = true;
+        completeSegmentEndIndex = closingTagIndex + closingTag.length;
+        query = content.substring(potentialSegmentEndIndex, closingTagIndex);
+        rawSegmentContent = content.substring(currentSegmentStartIndex, completeSegmentEndIndex);
+      }
+    } else if (toolName === 'browser-navigate-to') {
+      // Check if it's self-closing within the opening tag itself
+      if (openingTag.endsWith('/>')) {
+         isTagComplete = true;
+         completeSegmentEndIndex = potentialSegmentEndIndex;
+         // Extract URL from attributes
+         const urlMatch = attributes.match(/url="([^"]+)"/);
+         url = urlMatch ? urlMatch[1] : undefined;
+         rawSegmentContent = openingTag;
+         // segmentEndIndex and rawSegmentContent are already correct
+      }
+      // No else needed: if not self-closing, it's incomplete for this tag type
+    }
+
+    // --- Decision Point --- 
+    // Add the text segment preceding the current match *only if* the tag is complete
+    // Or if this is the very first segment being added.
     if (matchIndex > lastIndex) {
       segments.push({ type: 'text', text: content.substring(lastIndex, matchIndex) });
     }
 
-    // Identify which tag matched and add the tool call segment
-    if (match[1]) { // <web-search>content</web-search>
+    if (isTagComplete) {
+      // Add the complete tool call segment
       segments.push({
         type: 'tool-call',
-        toolName: 'web-search',
-        query: match[1],
-        raw: fullMatch,
+        toolName,
+        query,
+        url,
+        raw: rawSegmentContent,
+        // isComplete: true, // No longer needed
       });
-    } else if (match[2]) { // <browser-navigate-to url="..."/>
-      segments.push({
-        type: 'tool-call',
-        toolName: 'browser-navigate-to',
-        url: match[2],
-        raw: fullMatch,
-      });
+      // Update indices for next iteration
+      lastIndex = completeSegmentEndIndex;
+      openingTagRegex.lastIndex = completeSegmentEndIndex; // Continue searching AFTER this complete tag
+    } else {
+      // Incomplete tag found. Add text up to this point and stop parsing for this pass.
+      // Incomplete tag. Stop parsing here and return segments found so far.
+      // The preceding text segment (if any) was already added.
+      openingTagRegex.lastIndex = 0; // Reset regex for the next call
+      return segments; // Return segments up to the incomplete tag
     }
+  } // End while loop
 
-    lastIndex = matchIndex + fullMatch.length;
-  }
-
-  // Add remaining text segment if any
+  // If the loop finished naturally (no incomplete tag break), add any trailing text.
   if (lastIndex < content.length) {
     segments.push({ type: 'text', text: content.substring(lastIndex) });
   }

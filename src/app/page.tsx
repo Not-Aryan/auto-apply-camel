@@ -35,15 +35,27 @@ export default function HomePage() {
   };
 
   // --- Map Vercel AI SDK messages to our ChatMessageData format --- 
-  const formattedMessages: ChatMessageData[] = messages.map((m: Message): ChatMessageData => ({
-    id: m.id,
-    sender: m.role === 'user' ? 'user' : 'assistant',
-    content: m.content,
-    timestamp: m.createdAt?.toISOString(), // Optional: use createdAt if available
-    // --- TODO: Map attachments/toolCalls if they come from the SDK message --- 
-    // attachments: m.attachments, // Example if SDK provides attachments
-    // toolCalls: m.toolInvocations?.map(...) // Example if SDK provides tool info
-  }));
+  const formattedMessages: ChatMessageData[] = messages.map((m): ChatMessageData => {
+    // Explicitly type m as Message from @ai-sdk/react if not inferred
+    const sdkMessage = m as Message;
+    return {
+      id: m.id,
+      sender: m.role === 'user' ? 'user' : 'assistant',
+      content: m.content,
+      timestamp: m.createdAt?.toISOString(), // Optional: use createdAt if available
+      // --- TODO: Map attachments/toolCalls if they come from the SDK message --- 
+      // attachments: m.attachments, // Example if SDK provides attachments
+      // Map toolInvocations if they exist
+      toolCalls: sdkMessage.toolInvocations?.map((toolInvocation) => ({
+        // Assuming ToolCall in types.ts matches this structure or adapting as needed
+        id: toolInvocation.toolCallId, // Use the ID from the invocation
+        name: toolInvocation.toolName,
+        // Convert args object to string for ToolCallButton? Or adapt ToolCallButton?
+        // Let's assume ToolCallButton expects a string for now.
+        params: JSON.stringify(toolInvocation.args),
+      })),
+    };
+  });
 
   // --- Handle initial message logic (if needed separate from useChat) ---
   // The API route will now handle the initial context injection via system prompt
