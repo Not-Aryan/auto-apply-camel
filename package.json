@@ -12,6 +12,7 @@
     "test:onboarding": "ts-node scripts/test-onboarding.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.3.20",
     "@clerk/nextjs": "^6.3.2",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.9.1",
@@ -46,6 +47,7 @@
     "@supabase/supabase-js": "^2.46.1",
     "@tanstack/react-table": "^8.20.5",
     "@types/react-select": "^5.0.1",
+    "ai": "^4.3.10",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -64,9 +66,11 @@
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-dropzone": "^14.3.5",
     "react-hook-form": "^7.53.1",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.6",
     "react-select": "^5.8.3",
     "recharts": "^2.13.3",
+    "remark-gfm": "^4.0.1",
     "sonner": "^1.2.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
@@ -77,6 +81,7 @@
   },
   "devDependencies": {
     "@prisma/client": "^5.22.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
