@@ -197,14 +197,13 @@ export async function addEducation(data: EducationFormData) {
         universityLogo: data.universityData?.logo,
         universityWebsite: data.universityData?.website,
         universityCountry: data.universityData?.country,
-        universityState: data.universityData?.state,
-        universityCity: data.universityData?.city,
         degree: data.degree,
         field: data.field,
         startDate: data.startDate,
         endDate: data.endDate,
-        gpa: data.gpa,
+        gpa: data.gpa ? parseFloat(data.gpa) : null,
         description: data.description,
+        location: data.universityData?.city,
       },
     });
 

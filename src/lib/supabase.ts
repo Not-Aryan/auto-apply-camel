@@ -90,7 +90,6 @@ export async function uploadResume(file: File, userId: string) {
     if (uploadError) {
       console.error('Upload error details:', {
         message: uploadError.message,
-        statusCode: uploadError.statusCode,
         name: uploadError.name,
         error: uploadError
       });

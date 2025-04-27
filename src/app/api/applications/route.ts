@@ -95,12 +95,12 @@ export async function GET(req: NextRequest) {
     });
 
     // Transform the data to match the dashboard's expected format
-    const formattedApplications = applications.map(app => ({
+    const formattedApplications = applications.map((app: any) => ({
       id: app.id,
       name: app.companyName,
       jobTitle: app.jobTitle,
       status: mapStatus(app.status || 'not applied'), // Default to not applied if status is null/undefined
-      interview: app.nextStep,
+      interview: app.interview,
       lastUpdate: app.lastUpdate.toISOString(),
       tasks: [
         {
@@ -111,9 +111,9 @@ export async function GET(req: NextRequest) {
                  app.status?.toLowerCase() === 'interview' ? 'blue' : 
                  !app.status ? 'yellow' : 'gray'
         },
-        ...(app.nextStep ? [{
+        ...(app.interview ? [{
           id: "next-step",
-          name: app.nextStep,
+          name: app.interview,
           color: "purple"
         }] : [])
       ]

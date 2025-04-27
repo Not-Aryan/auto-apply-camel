@@ -448,7 +448,7 @@ Remember to keep the response concise, professional, and relevant to the role. F
       console.log('User query result:', {
         found: !!user,
         hasProfile: !!user?.profile,
-        hasEducation: user?.profile?.education?.length > 0,
+        hasEducation: user?.profile?.education && user.profile.education.length > 0,
         hasResume: !!user?.profile?.resumeUrl
       });
 
@@ -570,8 +570,8 @@ Remember to keep the response concise, professional, and relevant to the role. F
             'phone': this.userProfile.phone,
             'linkedin_url': this.userProfile.linkedinUrl,
             'linkedin': this.userProfile.linkedinUrl,
-            'website': this.userProfile.portfolioUrl,
-            'portfolio': this.userProfile.portfolioUrl,
+            'website': this.userProfile.portfolioUrl ?? null,
+            'portfolio': this.userProfile.portfolioUrl ?? null,
           };
 
           if (profileMapping[fieldId]) {

@@ -40,12 +40,11 @@ import { SAMPLE_DATA } from "@/lib/constants";
 export function AppSidebar({ className, ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" className={cn(className)} {...props}>
-      <SidebarHeader>
-        <TeamSwitcher teams={SAMPLE_DATA.teams} />
-      </SidebarHeader>
+      {/* <SidebarHeader>
+      </SidebarHeader> */}
       <SidebarContent>
         <NavSearch />
-        <NavFavorites />
+        {/* <NavFavorites /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

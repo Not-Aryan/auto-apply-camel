@@ -4,6 +4,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
+import Image from "next/image";
 
 import { useIsMobile } from "@/components/hooks/use-mobile";
 import { cn } from "@/components/lib/utils";
@@ -22,7 +23,7 @@ import {
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "14rem";
-const SIDEBAR_WIDTH_MOBILE = "18rem";
+// const SIDEBAR_WIDTH_MOBILE = "18rem"; // Commented out as it's not used
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
@@ -181,6 +182,15 @@ const Sidebar = React.forwardRef<
       <>
         <div className="flex items-center justify-between p-2">
           {/* Left empty space for alignment */}
+          <div className="mt-3 ml-3">
+            <Image
+              src="https://cdn.prod.website-files.com/66abefe349b0c8356d750497/66e9fc867fe9b29bfd9c81a3_coframe-logo.svg"
+              alt="Logo"
+              width={24}
+              height={24}
+              className="inline-block max-w-full flex-none align-middle filter invert"
+            />
+          </div>
           <div className="w-7" />
           {/* Trigger button aligned to the right */}
           <SidebarTrigger className="ml-auto" />

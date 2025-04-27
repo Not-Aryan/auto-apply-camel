@@ -54,7 +54,7 @@ export function NavUser() {
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
-              tooltip={isCollapsed ? user.fullName : undefined}
+              tooltip={isCollapsed && user.fullName ? user.fullName : undefined}
             >
               <Avatar className="h-6 w-6">
                 <AvatarImage src={user.imageUrl} alt={user.fullName || ""} />
