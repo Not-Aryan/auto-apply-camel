@@ -1,0 +1,5 @@
+{
+  "buildCommand": "prisma generate && next build --no-lint",
+  "installCommand": "bun install",
+  "framework": "nextjs"
+} 

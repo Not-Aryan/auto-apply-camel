@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../prisma';
-import { Profile, Education, Experience } from '@prisma/client';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -484,10 +483,10 @@ Remember to keep the response concise, professional, and relevant to the role. F
       }
 
       // Get all relevant skills
-      const skills = user.profile.skills?.map(s => s.id)?.join(', ') ?? '';
+      const skills = user.profile.skills?.map((s: any) => s.id)?.join(', ') ?? '';
       
       // Get relevant projects with null checks
-      const projects = user.profile.projects?.map(p => ({
+      const projects = user.profile.projects?.map((p: any) => ({
         name: p.name ?? '',
         description: p.description ?? '',
         technologies: Array.isArray(p.technologies) ? p.technologies.join(', ') : ''
