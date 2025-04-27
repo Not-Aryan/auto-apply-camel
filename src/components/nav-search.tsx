@@ -17,9 +17,9 @@ const searchItems = [
     icon: Search,
   },
   {
-    title: "Dashboard",
+    title: "Jobs",
     icon: LayoutDashboard,
-    href: "/dashboard",
+    href: "/jobs",
   },
   {
     title: "Profile",
