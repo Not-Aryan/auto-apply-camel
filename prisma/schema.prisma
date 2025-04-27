@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+model User {
+  id            String           @id
+  email         String           @unique
+  firstName     String?
+  lastName      String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  profile       Profile?
+  applications  JobApplication[]
+}
+
+model Profile {
+  id              String    @id @default(cuid())
+  user            User      @relation(fields: [userId], references: [id])
+  userId          String    @unique
+  phoneNumber     String?
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  zipCode         String?
+  resumeUrl       String?   // URL to stored resume file
+  linkedinUrl     String?
+  githubUrl       String?
+  portfolioUrl    String?
+  education       Education[]
+  experiences     Experience[]
+  projects        Project[]
+  skills          Skill[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Education {
+  id              String    @id @default(cuid())
+  profile         Profile   @relation(fields: [profileId], references: [id])
+  profileId       String
+  university      String
+  universityLogo  String?
+  universityCountry String?
+  universityWebsite String?
+  degree          String
+  field           String
+  gpa            Float?
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrently     Boolean   @default(false)
+  location        String?
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Experience {
+  id              String    @id @default(cuid())
+  profile         Profile   @relation(fields: [profileId], references: [id])
+  profileId       String
+  company         String
+  position        String
+  location        String?
+  type            String    // Full-time, Part-time, Internship, etc.
+  startDate       DateTime
+  endDate         DateTime?
+  isCurrently     Boolean   @default(false)
+  description     String?   @db.Text
+  achievements    String?   @db.Text
+  technologies    String[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Project {
+  id              String    @id @default(cuid())
+  profile         Profile   @relation(fields: [profileId], references: [id])
+  profileId       String
+  name            String
+  description     String?   @db.Text
+  url             String?
+  githubUrl       String?
+  technologies    String[]
+  startDate       DateTime?
+  endDate         DateTime?
+  isOngoing       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Skill {
+  id              String    @id @default(cuid())
+  profile         Profile   @relation(fields: [profileId], references: [id])
+  profileId       String
+  name            String
+  proficiency     String?   // Beginner, Intermediate, Advanced, Expert
+  category        String?   // Programming Language, Framework, Tool, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model JobApplication {
+  id              String    @id @default(cuid())
+  user            User      @relation(fields: [userId], references: [id])
+  userId          String
+  companyName     String    // matches 'name' in Company type
+  jobTitle        String
+  jobUrl          String
+  status          String    // "R" | "CF" | "S" | "RM" | "NA" - matches Company type status
+  interview       String?   // optional interview details
+  tasks           Json?     // Array of { id: string, name: string, color: string }
+  recruiterName   String?
+  recruiterEmail  String?
+  notes           String?   @db.Text
+  submittedAt     DateTime? // Optional submission date
+  lastUpdate      DateTime? @updatedAt
+  formData        FormData?
+}
+
+model FormData {
+  id              String          @id @default(cuid())
+  application     JobApplication  @relation(fields: [applicationId], references: [id])
+  applicationId   String          @unique
+  responses       Json            // Store form field responses as JSON
+  submittedAt     DateTime        @default(now())
+}
