@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Settings, User, LayoutDashboard } from "lucide-react";
+import { Search, Settings, User, LayoutDashboard, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import {
   SidebarGroup,
@@ -12,20 +12,25 @@ import {
 } from "@/components/ui/sidebar";
 
 const searchItems = [
+  // {
+  //   title: "Search",
+  //   icon: Search,
+  // },
   {
-    title: "Search",
-    icon: Search,
+    title: "Chat",
+    icon: MessageCircle,
+    href: "/chat",
   },
   {
     title: "Jobs",
     icon: LayoutDashboard,
     href: "/jobs",
   },
-  {
-    title: "Profile",
-    icon: User,
-    href: "/profile",
-  },
+  // {
+  //   title: "Profile",
+  //   icon: User,
+  //   href: "/profile",
+  // },
   {
     title: "Settings",
     icon: Settings,

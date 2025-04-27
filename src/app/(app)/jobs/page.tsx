@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mockData } from "@/constants/mock-data"; // Import mock data
 
-type Status = "R" | "CF" | "S" | "RM";
+type Status = "R" | "CF" | "S" | "RM" | "NA";
 
 type Company = {
   id: string;

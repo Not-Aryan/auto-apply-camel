@@ -3,7 +3,7 @@ export interface Company {
   name: string;
   jobTitle: string;
   jobUrl: string;
-  status: "R" | "CF" | "S" | "RM";
+  status: "R" | "CF" | "S" | "RM" | "NA";
   interview?: string;
   accountOwner?: {
     name: string;

@@ -351,40 +351,42 @@ export function CompaniesTable({ data }: { data: Company[] }) {
     intervalRef.current = setInterval(() => {
       console.log("Animation tick"); // Debug log
       
-      animationRef.current.currentIndex = Math.min(
-        animationRef.current.currentIndex + 1, 
-        notAppliedIds.length
-      );
-      
       const { currentIndex } = animationRef.current;
-      
-      // If we've processed all items, clear the interval
-      if (currentIndex >= notAppliedIds.length) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        return;
-      }
       
       // Update states: current -> Applied, next -> Applying
       setApplicationStates(prev => {
         const newStates = { ...prev };
         
-        // Current item (just processed) becomes Applied
-        const currentId = notAppliedIds[currentIndex - 1];
-        newStates[currentId] = "Applied";
+        // Current item (the one currently showing "Applying") becomes Applied
+        const currentId = notAppliedIds[currentIndex];
+        if (currentId) {
+          newStates[currentId] = "Applied";
+        }
         
-        // Next item becomes Applying
-        const nextId = notAppliedIds[currentIndex];
-        if (nextId) {
+        // Increment index for next cycle
+        animationRef.current.currentIndex = currentIndex + 1;
+        const nextIndex = currentIndex + 1;
+        
+        // Next item becomes Applying (if there is one)
+        if (nextIndex < notAppliedIds.length) {
+          const nextId = notAppliedIds[nextIndex];
           newStates[nextId] = "Applying";
         }
         
         console.log("New states:", newStates); // Debug log
         return newStates;
       });
-    }, 3000); // Reduced to 3 seconds for testing
+      
+      // Check if we should stop after this update
+      const nextIndex = animationRef.current.currentIndex;
+      if (nextIndex >= notAppliedIds.length) {
+        console.log("Animation complete, clearing interval");
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      }
+    }, 3000); // 3 seconds for testing
   };
 
   // Status display logic
