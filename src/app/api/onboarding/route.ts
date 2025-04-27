@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth, clerkClient, EmailAddress } from '@clerk/nextjs/server';
 import { mockData } from '@/constants/mock-data';
+import { RankingService } from '@/lib/services/ranking-service';
 
 export async function POST(request: Request) {
   try {
@@ -264,37 +265,69 @@ export async function POST(request: Request) {
         });
       }
       console.log(`Created job applications for user ${userId}`);
-    } catch (error) {
-      console.error(`Failed to create job applications for user ${userId}:`, error);
-      // Don't fail the entire onboarding process if job application creation fails
-    }
 
-    // Return success response
-    return NextResponse.json({
-      success: true,
-      data: {
-        profile: {
-          id: profile.id,
-          userId: profile.userId,
-          basicInfo: {
-            phoneNumber: profile.phoneNumber,
-            address: profile.address,
-            city: profile.city,
-            state: profile.state,
-            country: profile.country,
-            zipCode: profile.zipCode,
-            linkedinUrl: profile.linkedinUrl,
-            githubUrl: profile.githubUrl,
-            portfolioUrl: profile.portfolioUrl,
-            resumeUrl: profile.resumeUrl,
+      // Generate rankings for the new applicant
+      const rankingService = new RankingService();
+      const rankings = await rankingService.updateApplicantRankings(userId);
+      console.log(`Generated rankings for user ${userId}`);
+
+      // Return success response with rankings included
+      return NextResponse.json({
+        success: true,
+        data: {
+          profile: {
+            id: profile.id,
+            userId: profile.userId,
+            basicInfo: {
+              phoneNumber: profile.phoneNumber,
+              address: profile.address,
+              city: profile.city,
+              state: profile.state,
+              country: profile.country,
+              zipCode: profile.zipCode,
+              linkedinUrl: profile.linkedinUrl,
+              githubUrl: profile.githubUrl,
+              portfolioUrl: profile.portfolioUrl,
+              resumeUrl: profile.resumeUrl,
+            },
+            education: profile.education,
+            experiences: profile.experiences,
+            projects: profile.projects,
+            skills: profile.skills,
           },
-          education: profile.education,
-          experiences: profile.experiences,
-          projects: profile.projects,
-          skills: profile.skills
+          rankings: rankings
         }
-      }
-    });
+      });
+
+    } catch (error) {
+      console.error(`Failed to create job applications or rankings for user ${userId}:`, error);
+      // Don't fail the entire onboarding process if job application creation fails
+      return NextResponse.json({
+        success: true,
+        data: {
+          profile: {
+            id: profile.id,
+            userId: profile.userId,
+            basicInfo: {
+              phoneNumber: profile.phoneNumber,
+              address: profile.address,
+              city: profile.city,
+              state: profile.state,
+              country: profile.country,
+              zipCode: profile.zipCode,
+              linkedinUrl: profile.linkedinUrl,
+              githubUrl: profile.githubUrl,
+              portfolioUrl: profile.portfolioUrl,
+              resumeUrl: profile.resumeUrl,
+            },
+            education: profile.education,
+            experiences: profile.experiences,
+            projects: profile.projects,
+            skills: profile.skills,
+          }
+        }
+      });
+    }
 
   } catch (error) {
     // Convert error to a plain object for logging

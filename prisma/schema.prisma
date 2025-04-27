@@ -133,3 +133,28 @@ model FormData {
   responses       Json            // Store form field responses as JSON
   submittedAt     DateTime        @default(now())
 }
+
+model CompanyRanking {
+  id              String    @id @default(cuid())
+  companyName     String
+  jobTitle        String
+  idealCandidate  String    @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  rankings        UserRanking[]
+
+  @@unique([companyName])
+}
+
+model UserRanking {
+  id              String         @id @default(cuid())
+  user            User           @relation(fields: [userId], references: [id])
+  userId          String
+  company         CompanyRanking @relation(fields: [companyName], references: [companyName])
+  companyName     String
+  score           Float
+  reason          String         @db.Text
+  timestamp       DateTime       @default(now())
+
+  @@unique([userId, companyName])
+}

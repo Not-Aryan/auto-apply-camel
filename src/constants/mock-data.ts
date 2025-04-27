@@ -12,6 +12,7 @@ export type Company = {
     avatarUrl: string;
   };
   lastUpdate: string;
+  idealCandidate: string;
   tasks: {
     id: string;
     name: string;
@@ -159,6 +160,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/sarah.jpg",
     },
     lastUpdate: "1 hour ago",
+    idealCandidate: "Looking for creative problem-solvers with strong front-end development skills. Ideal candidates should have experience with modern web technologies, UI/UX design principles, and collaborative design tools. Knowledge of WebGL, Canvas API, or real-time collaboration systems is a plus.",
     tasks: [
       { id: "t1", name: "Schedule Final", color: "green" },
       { id: "t2", name: "System Design Prep", color: "red" },
@@ -171,6 +173,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/rippling/jobs/4489678005",
     status: "S",
     lastUpdate: "3 hours ago",
+    idealCandidate: "Seeking candidates with strong full-stack development experience and interest in enterprise software. Should have experience with modern JavaScript frameworks, API design, and database systems. Knowledge of HR tech, payroll systems, or enterprise software is valuable.",
     tasks: [{ id: "t3", name: "Cold Email Recruiter", color: "blue" }],
   },
   {
@@ -185,6 +188,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/mike.jpg",
     },
     lastUpdate: "1 day ago",
+    idealCandidate: "Looking for candidates with strong ML/AI background and excellent programming skills. Should have experience with Python, distributed systems, and data processing. Knowledge of computer vision, NLP, or AI/ML frameworks is highly desired.",
     tasks: [
       { id: "t4", name: "Take OA", color: "yellow" },
       { id: "t5", name: "Technical Screen", color: "red" },
@@ -197,6 +201,7 @@ export const mockData: Company[] = [
     jobUrl: "",
     status: "RM",
     lastUpdate: "2 days ago",
+    idealCandidate: "Seeking candidates with strong interest in AI safety and ethics. Should have experience with large language models, distributed systems, and Python. Background in mathematics, computational linguistics, or philosophy is valuable.",
     tasks: [
       { id: "t6", name: "Follow Up Email", color: "blue" },
       { id: "t7", name: "Submit Application", color: "purple" },
@@ -214,6 +219,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/lisa.jpg",
     },
     lastUpdate: "4 days ago",
+    idealCandidate: "Looking for candidates with strong distributed systems and big data experience. Should have knowledge of Spark, Hadoop ecosystem, and cloud platforms. Experience with data processing, analytics, or machine learning is highly valued.",
     tasks: [
       { id: "t8", name: "Behavioral Prep", color: "orange" },
       { id: "t9", name: "Final Round", color: "green" },
@@ -226,6 +232,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/plaid/jobs/4489678005",
     status: "S",
     lastUpdate: "5 days ago",
+    idealCandidate: "Seeking candidates with interest in fintech and API development. Strong understanding of security, authentication, and RESTful services required. Knowledge of financial systems and banking technology is a plus.",
     tasks: [
       { id: "t10", name: "Take OA", color: "yellow" },
       { id: "t11", name: "Submit Application", color: "blue" },
@@ -242,6 +249,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/dylan.jpg",
     },
     lastUpdate: "1 week ago",
+    idealCandidate: "Looking for creative problem-solvers with strong front-end development skills. Ideal candidates should have experience with modern web technologies, UI/UX design principles, and collaborative design tools. Knowledge of WebGL, Canvas API, or real-time collaboration systems is a plus.",
     tasks: [
       { id: "t12", name: "Technical Screen", color: "red" },
       { id: "t13", name: "LC Prep", color: "orange" },
@@ -254,6 +262,7 @@ export const mockData: Company[] = [
     jobUrl: "",
     status: "RM",
     lastUpdate: "1 week ago",
+    idealCandidate: "Seeking candidates with full-stack development experience and passion for productivity tools. Should have experience with React, real-time collaboration, and database design. Interest in knowledge management and document editing systems is valuable.",
     tasks: [{ id: "t14", name: "Cold Email Recruiter", color: "blue" }],
   },
   {
@@ -268,6 +277,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/david.jpg",
     },
     lastUpdate: "2 weeks ago",
+    idealCandidate: "Looking for candidates with experience in internal tools and enterprise software development. Strong understanding of APIs, databases, and front-end frameworks required. Experience with drag-and-drop interfaces or low-code platforms is a plus.",
     tasks: [
       { id: "t15", name: "Final Round", color: "red" },
       { id: "t16", name: "System Design Prep", color: "orange" },
@@ -280,6 +290,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/openai/jobs/4489678005",
     status: "S",
     lastUpdate: "2 weeks ago",
+    idealCandidate: "Seeking candidates with strong ML/AI background and interest in AGI development. Should have experience with PyTorch, transformers, and large-scale distributed systems. Background in mathematics, computational linguistics, or cognitive science is valuable.",
     tasks: [
       { id: "t17", name: "Submit Application", color: "blue" },
       { id: "t18", name: "Follow Up Email", color: "gray" },
@@ -297,6 +308,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/emily.jpg",
     },
     lastUpdate: "2 weeks ago",
+    idealCandidate: "Looking for candidates with strong distributed systems and big data experience. Should have knowledge of Spark, Hadoop ecosystem, and cloud platforms. Experience with data processing, analytics, or machine learning is highly valued.",
     tasks: [
       { id: "t19", name: "Technical Screen", color: "red" },
       { id: "t20", name: "Behavioral Prep", color: "green" },
@@ -314,6 +326,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/john.jpg",
     },
     lastUpdate: "2 weeks ago",
+    idealCandidate: "Looking for candidates with experience in transportation and logistics. Should have knowledge of routing algorithms, vehicle tracking systems, and customer service. Experience with large-scale systems and urban planning is valuable.",
     tasks: [
       { id: "t21", name: "Final Round", color: "red" },
       { id: "t22", name: "Team Matching", color: "purple" },
@@ -326,6 +339,7 @@ export const mockData: Company[] = [
     jobUrl: "",
     status: "RM",
     lastUpdate: "3 weeks ago",
+    idealCandidate: "Looking for candidates with experience in game development and user experience design. Should have knowledge of game engines, 3D modeling, and interactive design. Experience with multiplayer systems or social platforms is valuable.",
     tasks: [
       { id: "t23", name: "Submit Application", color: "blue" },
       { id: "t24", name: "Cold Email Recruiter", color: "gray" },
@@ -338,6 +352,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/discord/jobs/4489678005",
     status: "S",
     lastUpdate: "3 weeks ago",
+    idealCandidate: "Looking for candidates with experience in communication and social networking. Should have knowledge of real-time communication systems, API design, and database systems. Experience with large-scale systems and user-generated content is valuable.",
     tasks: [
       { id: "t25", name: "Take OA", color: "yellow" },
       { id: "t26", name: "LC Prep", color: "orange" },
@@ -354,6 +369,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/alex.jpg",
     },
     lastUpdate: "3 weeks ago",
+    idealCandidate: "Looking for candidates with experience in streaming and video content creation. Should have knowledge of streaming platforms, video editing, and social media marketing. Experience with live streaming or content moderation is valuable.",
     tasks: [
       { id: "t27", name: "Technical Screen", color: "red" },
       { id: "t28", name: "Schedule Call", color: "blue" },
@@ -366,6 +382,7 @@ export const mockData: Company[] = [
     jobUrl: "",
     status: "RM",
     lastUpdate: "3 weeks ago",
+    idealCandidate: "Looking for candidates with experience in financial technology and API development. Should have knowledge of financial markets, algorithmic trading, and security protocols. Experience with large-scale systems and financial analytics is valuable.",
     tasks: [
       { id: "t29", name: "Submit Application", color: "blue" },
       { id: "t30", name: "Follow Up Email", color: "gray" },
@@ -378,6 +395,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/coinbase/jobs/5232157004",
     status: "S",
     lastUpdate: "4 weeks ago",
+    idealCandidate: "Looking for candidates with experience in cryptocurrency and blockchain technology. Should have knowledge of blockchain architecture, smart contracts, and decentralized systems. Experience with large-scale systems and financial security is valuable.",
     tasks: [
       { id: "t31", name: "Take OA", color: "yellow" },
       { id: "t32", name: "Complete Survey", color: "purple" },
@@ -395,6 +413,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/tom.jpg",
     },
     lastUpdate: "4 weeks ago",
+    idealCandidate: "Looking for candidates with experience in data analysis and machine learning. Should have knowledge of large-scale data processing, statistical modeling, and data visualization. Experience with large-scale systems and data security is valuable.",
     tasks: [
       { id: "t33", name: "Final Round", color: "red" },
       { id: "t34", name: "System Design Prep", color: "orange" },
@@ -407,6 +426,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/doordash/jobs/7575557002",
     status: "CF",
     lastUpdate: "1 month ago",
+    idealCandidate: "Looking for candidates with experience in food delivery and logistics. Should have knowledge of routing algorithms, vehicle tracking systems, and customer service. Experience with large-scale systems and urban planning is valuable.",
     tasks: [
       { id: "t35", name: "Take OA", color: "yellow" },
       { id: "t36", name: "LC Prep", color: "orange" },
@@ -424,6 +444,7 @@ export const mockData: Company[] = [
       avatarUrl: "/avatars/rachel.jpg",
     },
     lastUpdate: "1 month ago",
+    idealCandidate: "Looking for candidates with experience in hospitality and customer service. Should have knowledge of reservation systems, booking platforms, and guest experience. Experience with large-scale systems and urban planning is valuable.",
     tasks: [
       { id: "t37", name: "Final Round", color: "red" },
       { id: "t38", name: "Background Check", color: "green" },
@@ -436,6 +457,7 @@ export const mockData: Company[] = [
     jobUrl: "",
     status: "RM",
     lastUpdate: "1 month ago",
+    idealCandidate: "Looking for candidates with experience in creative design and user experience. Should have knowledge of design tools, UI/UX principles, and creative collaboration. Experience with large-scale systems and creative security is valuable.",
     tasks: [
       { id: "t39", name: "Submit Application", color: "blue" },
       { id: "t40", name: "Cold Email Recruiter", color: "gray" },
@@ -448,6 +470,7 @@ export const mockData: Company[] = [
     jobUrl: "https://boards.greenhouse.io/atlassian/jobs/4489678005",
     status: "S",
     lastUpdate: "1 month ago",
+    idealCandidate: "Looking for candidates with experience in software development and project management. Should have knowledge of agile methodologies, software architecture, and team collaboration. Experience with large-scale systems and project security is valuable.",
     tasks: [
       { id: "t41", name: "Take OA", color: "yellow" },
       { id: "t42", name: "Follow Up Email", color: "gray" },
